@@ -4,6 +4,8 @@
 #include "global.h"
 #include "tcp_server.h"
 #include "common_data.h"
+#include <chrono>
+#include <thread>
 #include <utility>
 
 
@@ -13,7 +15,7 @@ int main(int argc, char **argv) {
   server.start();
 
 
-  Pose start(5,5,0);
+  Pose start(7,-10,0);
 
   // 5 号车的相对位置（2，2，0）， 6 号车的相对位置（-2，-2，0）
   CoTask task;
@@ -31,16 +33,29 @@ int main(int argc, char **argv) {
   std::vector<std::pair<int, Pose>> agvs_res;
   task.Update(start, agvs_res);
 
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  // 设置工作模式
+    for(const auto &it : agvs_res) {
+    MSG_CC::SetWorkModeCommand cmd;
+    cmd.m_mode = SetWorkModeCommand::AutoMode;
+    cmd.m_agvId = (int)it.first;
+    server.send(it.first, (char *) &cmd, sizeof(cmd));
+    LOG(INFO) << "send agv: " << it.first << " auto_mode";
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
   // 先让小车到位
   for(const auto &it : agvs_res) {
     MSG_CC::MoveJob job;
     job.m_jobId = 2024;
-    job.m_agvId = it.first;
-    job.m_head = MSG_CC::MoveJob::MoveToPoint;
-    job.m_x = it.second.x; job.m_y = it.second.y; job.m_theta = it.second.theta;
+    job.m_agvId = (int)it.first;
+    job.m_jobtype = MSG_CC::MoveJob::MoveToPoint;
+    job.m_x = 1000*it.second.x; job.m_y = 1000*it.second.y; job.m_theta = it.second.theta;
 
     server.send(it.first, (char *) &job, sizeof(job));
-    LOG(INFO) << "send agv: " << it.first << "pos: " << it.second;
+    LOG(INFO) << "send agv: " << it.first << " pos: " << it.second;
     Global::set_agv_job_state(it.first, JOBSTATE::working);
   }
 

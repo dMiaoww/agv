@@ -8,6 +8,7 @@
 
 #include <arpa/inet.h>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <exception>
 #include <functional>
@@ -69,10 +70,24 @@ public:
     if(m_t.joinable()) m_t.join();
   }
 private: 
+  void sendHeartBeat(){
+    MSG_CC::HeartBeat heartbeat;
+    send((char *)&heartbeat, sizeof(heartbeat));
+  }
+
   void func() {
     // 接收消息
 		char buf[1024];
+    static auto last_time = std::chrono::steady_clock::now();
     while (isconnect) {
+      // send heartbeat
+      auto curr_time = std::chrono::steady_clock::now();
+      std::chrono::duration<double> e = curr_time - last_time;
+      if(e.count() > 1) {
+        sendHeartBeat();
+        last_time = curr_time;
+      }
+
 			memset(buf, 0, sizeof(buf));
 			int length = recv(m_fd, buf, 1024, 0);
       if(length == 0){
@@ -84,11 +99,43 @@ private:
       }
 			// TODO：解析消息
 			MSG_AGV::BaseData *base_agv = (MSG_AGV::BaseData *) buf;
+      // LOG(INFO) << "recv msg of "<< m_agv_id << ", type " << base_agv->m_head;
 			switch (base_agv->m_head) {
-				case MSG_AGV::_agvStatusHeadEnum:
+				// 位置和速度
+        case MSG_AGV::_agvStatusHeadEnum: {
 					MSG_AGV::AgvStatus *agv = (MSG_AGV::AgvStatus *) buf;
-					Global::set_agv_status(agv->m_agvID, AGVstatus(agv->m_x, agv->m_y, agv->m_theta, agv->m_v, agv->m_w));
-          LOG(INFO) << "get agv state msg: " << agv->m_agvID;
+					Global::set_agv_status(m_agv_id, AGVstatus(agv->m_x, agv->m_y, agv->m_theta, agv->m_v, agv->m_w));
+          // LOG(INFO) << m_agv_id << " pos, " << agv->m_x << ", " << agv->m_y << ", " << agv->m_theta;
+          break;
+        }
+        // agv到达
+        case MSG_AGV::_agvArriveHeadEnum: {
+          MSG_AGV::AgvArrive *agv = (MSG_AGV::AgvArrive *) buf;
+  				Global::set_agv_job_state(m_agv_id, JOBSTATE::finish);
+          LOG(INFO) << m_agv_id << " arrive";
+          break;
+        }
+        // agv接受任务
+        case MSG_AGV::_agvTaskResultHeadEnum: {
+          MSG_AGV::AgvTaskResult *agv = (MSG_AGV::AgvTaskResult *) buf;
+          if(agv->m_result == MSG_AGV::AgvTaskResult::TaskResultSuccess) {
+            Global::set_agv_job_state(m_agv_id, JOBSTATE::working);
+            LOG(INFO) << m_agv_id << " receive task";  
+          } else {
+            LOG(INFO) << m_agv_id << " refuse task: " << (int)agv->m_result;  
+          }
+          break;
+        }
+        // agv改变模式成功
+        case MSG_AGV::_agvSetModeResultHeadEnum: {
+          MSG_AGV::AgvSetModeResult *res = (MSG_AGV::AgvSetModeResult *) buf;
+          if(res->m_result == MSG_AGV::AgvSetModeResult::SuccessResultType) {
+            LOG(INFO) << m_agv_id << " set mode succeful"; 
+          } else {
+            LOG(INFO) << m_agv_id << " set mode failed"; 
+          }
+          break;
+        }
       } 
     }
   }
@@ -101,6 +148,7 @@ public:
     memset(&serv_addr, '0', sizeof(serv_addr));
 		int flag = 1;
 		setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+    setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
 
     serv_addr.sin_family = PF_INET;
     inet_pton(PF_INET, "192.168.1.227", &(serv_addr.sin_addr));
