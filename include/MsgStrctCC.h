@@ -79,7 +79,8 @@ extern "C"
         _resourceRecoverHeadEnum = 0xF9,     // 资源对齐
         _clearAllJobsOnAgvHeadEnum = 0x31,   // 清除所有任务
         _screenDisplayHeadEnum = 0x32,       // 要求小车屏幕上显示指定的字符串，变长消息，没有具体的结构体
-        _agvNewRouteHeadEnum   = 0x33        // AGV的新路线格式
+        _agvNewRouteHeadEnum   = 0x33,        // AGV的新路线格式
+        _followPointHeadEnum   = 0x40
     };
 
     //心跳包
@@ -132,6 +133,25 @@ extern "C"
         int m_x, m_y; //毫米
         float m_theta;
         unsigned char m_mapFile[TCP_DATA_STR_LENGTH_CC];
+    };
+
+    struct FollowPoint : public BaseStruct{
+        FollowPoint() : m_x(0), m_y(0), m_theta(0.0)
+        {
+            m_head = _followPointHeadEnum;
+        }
+        FollowPoint(FollowPoint *ptr) : BaseStruct((BaseStruct *)ptr),
+                                m_x(ptr->m_x), m_y(ptr->m_y), m_theta(ptr->m_theta),
+                                m_v(ptr->m_v), m_w(ptr->m_w), m_time(ptr->m_time)
+        {
+        }
+        FollowPoint(FollowPoint &ptr) : BaseStruct(&ptr),
+                                m_x(ptr.m_x), m_y(ptr.m_y), m_theta(ptr.m_theta), 
+                                m_v(ptr.m_v), m_w(ptr.m_w), m_time(ptr.m_time)
+        {
+        }
+        float m_x, m_y, m_theta, m_v, m_w;
+        long m_time;
     };
 
     // 只到达目标工位，不执行工位下的macro

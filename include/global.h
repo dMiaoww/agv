@@ -6,7 +6,7 @@
 #include <utility>
 
 enum class JOBSTATE {
-  free, working, finish
+  free, send_task, pre_working, following, finish
 };
 
 struct AGVstatus {

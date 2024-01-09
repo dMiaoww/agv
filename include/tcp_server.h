@@ -119,7 +119,7 @@ private:
         case MSG_AGV::_agvTaskResultHeadEnum: {
           MSG_AGV::AgvTaskResult *agv = (MSG_AGV::AgvTaskResult *) buf;
           if(agv->m_result == MSG_AGV::AgvTaskResult::TaskResultSuccess) {
-            Global::set_agv_job_state(m_agv_id, JOBSTATE::working);
+            Global::set_agv_job_state(m_agv_id, JOBSTATE::pre_working);
             LOG(INFO) << m_agv_id << " receive task";  
           } else {
             LOG(INFO) << m_agv_id << " refuse task: " << (int)agv->m_result;  

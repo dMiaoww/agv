@@ -14,8 +14,8 @@ include_directories(include)
 
 add_subdirectory(src)
 
-add_executable(main main.cpp)
-target_link_libraries(main glog pthread src)
+# add_executable(main main.cpp)
+# target_link_libraries(main glog pthread src)
 
 add_executable(main1 main1.cpp)
 target_link_libraries(main1 glog pthread src)
