@@ -151,12 +151,12 @@ public:
     setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
 
     serv_addr.sin_family = PF_INET;
-    inet_pton(PF_INET, "192.168.1.227", &(serv_addr.sin_addr));
+    inet_pton(PF_INET, "0.0.0.0", &(serv_addr.sin_addr));
     serv_addr.sin_port = htons(port);
     int res =
         bind(listen_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (res != 0) {
-      LOG(ERROR) << "error binding socket" << strerror(errno);
+      LOG(ERROR) << "error binding socket " << strerror(errno);
       exit(1);
     }
     listen(listen_sock, 10);

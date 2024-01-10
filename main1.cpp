@@ -4,8 +4,11 @@
 #include "global.h"
 #include "tcp_server.h"
 #include "tracker.h"
+#include "MainWindow.h"
 
 #include <chrono>
+#include <cmath>
+#include <glog/logging.h>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -17,21 +20,42 @@ int main(int argc, char **argv) {
   Pose start(7, -10, 0);
 
   // 10 号车的相对位置（2，2，0）， 6 号车的相对位置（-2，-2，0）
-  CoTask task;
+  CoTask task_handler;
   std::vector<std::pair<int, Pose>> agvs;
   agvs.push_back(std::make_pair(10, Pose(2, 2, 0)));
   // agvs.push_back(std::make_pair(6, Pose(-2,-2,0)));
-  task.Init(agvs);
+  task_handler.Init(agvs);
 
+  MainWindow main_window(&task_handler);
+
+  std::unordered_map<int, AGVstatus> agv;
+  double x = 0;
+  double y = 0;
+  double t = 0;
+  static int i = 300;
   while (true) {
-    std::unordered_map<int, AGVstatus> agv;
+    if(i < 100) {
+      x += 0.01;
+    }else if(i < 200) {
+      y += 0.01;
+    } else {
+      t += M_PI/180.0;
+      if( t > M_PI) t -= 2*M_PI;
+    }
+    i++;
+
+    Global::set_agv_status(10, AGVstatus(x, y, t, 0, 0));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+
     Global::get_agv_state(agv);
     if (agv.size() == 1)
       break;
   } // 等待两个车都连上
 
   std::vector<std::pair<int, Pose>> agvs_res;
-  task.CalcComponentPos(start, agvs_res);
+  task_handler.CalcComponentPos(start, agvs_res);
+  LOG(INFO) << "3";
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -87,12 +111,12 @@ int main(int argc, char **argv) {
   double v = 0;
   while (true) {
     // 计算虚拟大车的速度和参考点
-    Pose VirtualCenter = task.CalcVirtualCenter();
+    Pose VirtualCenter = task_handler.CalcVirtualCenter();
     track.GetTrackParam(traj, VirtualCenter, index, v);
     
     // 发送给每个小车
     std::vector<std::pair<int, Pose>> agvs_res;
-    task.CalcComponentPos(start, agvs_res);
+    task_handler.CalcComponentPos(start, agvs_res);
     for (const auto &it : agvs_res) {
       MSG_CC::FollowPoint job;
       job.m_jobId = 2024;
@@ -112,6 +136,10 @@ int main(int argc, char **argv) {
     if (v == 0) {
       break;
     }
+  }
+
+  while (true) {
+  
   }
 
   return 0;

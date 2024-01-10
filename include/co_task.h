@@ -1,6 +1,7 @@
 #pragma  once 
 
 #include "common_data.h"
+#include <glog/logging.h>
 #include <utility>
 #include "global.h"
 
@@ -36,20 +37,23 @@ public:
     Pose p;
     for(int i = 0; i < size; ++i) {
       int agv_id = agvs_config[i].first;
-      double dx = agvs_config[i].second.x;
-      double dy = agvs_config[i].second.x;
-      double rx = agv_real.at(agv_id).m_x;
-      double ry = agv_real.at(agv_id).m_y;
-      double rt = agv_real.at(agv_id).m_theta;
-      // int dx = agvs_config[i].second.x;
-      p.x += (dx + rx);
-      p.y += (dy + ry);
-      p.theta += rt;
+      // 车体坐标系下的位置
+      const double cx = agvs_config[i].second.x; 
+      const double cy = agvs_config[i].second.y; 
+      
+      // 世界坐标系下的位置
+      double wx = agv_real.at(agv_id).m_x;
+      double wy = agv_real.at(agv_id).m_y;
+      double wt = agv_real.at(agv_id).m_theta;
+
+      // 世界坐标系下的偏移量
+      double dx = cx * cos(wt) - cy * sin(wt);
+      double dy = cx * sin(wt) + cy * cos(wt);
+      
+      p.x += (wx - dx) / size;
+      p.y += (wy - dy) / size;
+      p.theta += wt / size;
     }
-    p.x /= size;
-    p.y /= size;
-    p.theta /= size;
-    
     return p;
   }
 

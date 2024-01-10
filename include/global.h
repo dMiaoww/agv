@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include "common_data.h"
+
 enum class JOBSTATE {
   free, send_task, pre_working, following, finish
 };
@@ -33,6 +35,11 @@ public:
   static void get_agv_state(std::unordered_map<int, AGVstatus> &agv) {
     std::unique_lock<std::mutex> lock(global_mutex);
     agv = allagvs;
+  }
+
+  static Pose get_agv_pose(const int id){
+    std::unique_lock<std::mutex> lock(global_mutex);
+    return Pose(allagvs[id].m_x, allagvs[id].m_y, allagvs[id].m_theta);
   }
 
   // 从队列中删掉
