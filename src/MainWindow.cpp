@@ -57,6 +57,10 @@ void MainWindow::DrawCar(const double xx, const double yy, const double ttheta,
   // 计算角度
   const float radian = theta;
 
+  ImVec2 center;
+  center.x = x;
+  center.y = y;
+
   // 计算矩形的四个顶点
   ImVec2 rect[4];
   rect[0] =
@@ -74,6 +78,7 @@ void MainWindow::DrawCar(const double xx, const double yy, const double ttheta,
 
   draw_list->PushClipRectFullScreen();
   draw_list->AddQuadFilled(rect[0], rect[1], rect[2], rect[3], col);
+  draw_list->AddCircle(center, 2, IM_COL32(0,0,255,255));
   draw_list->PopClipRect();
 }
 
@@ -84,6 +89,7 @@ void MainWindow::DrawTraj(const std::vector<Pose>& traj, const ImU32 col){
   ImVec2 window_size = ImGui::GetWindowSize();
   for(int i = 0; i < traj.size()-1; ++i){
     ImVec2 p1, p2;
+    // LOG(INFO) << traj[i+1];
     p1.x = window_pos.x + (traj[i].x - window_ox) * 10;
     p1.y = window_pos.y + window_size.y - (traj[i].y - window_oy) * 10;
 

@@ -32,6 +32,10 @@ include_directories(
     # ... # 其他的包含文件路径
 )
 
+# 链接其他 OpenGL 和 GLFW 等库
+find_package(OpenGL REQUIRED)
+find_package(glfw3 REQUIRED)
+
 # 创建一个静态库目标
 add_library(imgui ${IMGUI_SOURCES})
 
@@ -39,9 +43,8 @@ add_subdirectory(src)
 
 
 add_executable(main1 main1.cpp)
-target_link_libraries(main1 glog pthread src imgui)
+target_link_libraries(main1 glog pthread src imgui OpenGL::GL glfw dl)
 
-# 链接其他 OpenGL 和 GLFW 等库
-find_package(OpenGL REQUIRED)
-find_package(glfw3 REQUIRED)
-target_link_libraries(main1 OpenGL::GL glfw dl)
+
+add_executable(single single.cpp)
+target_link_libraries(single glog pthread src imgui OpenGL::GL glfw dl)
