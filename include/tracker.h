@@ -19,9 +19,11 @@ public:
   // 输入是路径和上一次的参考点索引，输出是当前的参考点索引和速度
   void GetTrackParam(const std::vector<Pose> &traj, const Pose robot,
                      int &index, double &v) {
+    index ++;
     for (;index < traj.size(); ++index) {
       // 选合适的index
       if (fabs(angleB(robot, traj.at(index))) < M_PI_2) {
+        LOG(INFO) << traj[index];
         break;
       } 
     }
@@ -34,11 +36,13 @@ public:
 
         LOG(INFO) << "[success] Reach end.";
         v = 0;
+        index--;
         return;
       } else if (dis_to_end > 0.05 &&
                  fabs(angleB(robot, traj.back())) > M_PI_2) {
         LOG(ERROR) << "[fail] Over end.";
         v = 0;
+        index--;
         return;
       }
     }
@@ -52,15 +56,17 @@ public:
 
     otg.runCycleS1(50, otg_limit, target_vel);
     v = otg.qk.v;
+    LOG(INFO) << v;
   }
 
 private:
   double angleB(const Pose &p1, const Pose &p2) {
     double d = std::atan2(p2.y - p1.y, p2.x - p1.x) - p1.theta;
-    if (d > M_PI * 2) {
+    // LOG(INFO) << "P1: " <<p1 << " p2: " << p2 << " " << d; 
+    if (d > M_PI) {
       d -= M_PI * 2;
     }
-    if (d < M_PI * 2) {
+    if (d < -M_PI) {
       d += M_PI * 2;
     }
     return d;

@@ -1,10 +1,10 @@
+#include "MainWindow.h"
 #include "MsgStrctCC.h"
 #include "co_task.h"
 #include "common_data.h"
 #include "global.h"
 #include "tcp_server.h"
 #include "tracker.h"
-#include "MainWindow.h"
 
 #include <chrono>
 #include <cmath>
@@ -13,51 +13,19 @@
 #include <utility>
 #include <vector>
 
-int main(int argc, char **argv) {
-  TcpServer server(3333);
-  server.start();
+#define TEST 1
 
-  Pose start(7, -10, 0);
-
-  // 10 号车的相对位置（2，2，0）， 6 号车的相对位置（-2，-2，0）
-  CoTask task_handler;
-  std::vector<std::pair<int, Pose>> agvs;
-  agvs.push_back(std::make_pair(10, Pose(2, 2, 0)));
-  // agvs.push_back(std::make_pair(6, Pose(-2,-2,0)));
-  task_handler.Init(agvs);
-
-  MainWindow main_window(&task_handler);
-
-  std::unordered_map<int, AGVstatus> agv;
-  double x = 0;
-  double y = 0;
-  double t = 0;
-  static int i = 300;
-  while (true) {
-    if(i < 100) {
-      x += 0.01;
-    }else if(i < 200) {
-      y += 0.01;
-    } else {
-      t += M_PI/180.0;
-      if( t > M_PI) t -= 2*M_PI;
-    }
-    i++;
-
-    Global::set_agv_status(10, AGVstatus(x, y, t, 0, 0));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+TcpServer server(3333);
+// 设置任务起点
+Pose start(0, 0, 0);
+CoTask task_handler;
 
 
-    Global::get_agv_state(agv);
-    if (agv.size() == 1)
-      break;
-  } // 等待两个车都连上
 
+void setWorkMode() {
+  // 把组件AGV发送到起点
   std::vector<std::pair<int, Pose>> agvs_res;
   task_handler.CalcComponentPos(start, agvs_res);
-  LOG(INFO) << "3";
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   // 设置工作模式
   for (const auto &it : agvs_res) {
@@ -91,32 +59,56 @@ int main(int argc, char **argv) {
     Global::get_agv_state(agv);
     bool finish = true;
     for (auto it : agv) {
-      if (it.second.job_state != JOBSTATE::finish) 
+      if (it.second.job_state != JOBSTATE::finish)
         finish = false;
     }
     if (finish)
       break;
   }
   LOG(INFO) << "pre job finished";
+}
 
-  // 生成路线
+
+
+int main(int argc, char **argv) {
+  server.start();
+
+  // 10 号车的相对位置（2，2，0）， 6 号车的相对位置（-2，-2，0）
+  // 设置哪些车组成虚拟大车
+  std::vector<std::pair<int, Pose>> agvs;
+  agvs.push_back(std::make_pair(10, Pose(2, 2, 0)));
+  agvs.push_back(std::make_pair(6, Pose(-2,-2,0)));
+  task_handler.Init(agvs);
+
+  // 生成虚拟大车的路线
   std::vector<Pose> traj;
-  for (double x = start.x; x < (start.x + 2); x += 0.05) {
+  for (double x = start.x; x < (start.x + 10); x += 0.05) {
     traj.push_back(Pose(x, start.y, start.theta));
   }
+
+  // setWorkMode();  // 完成准备工作，就是先让小车到位
+  Global::set_agv_status(10, AGVstatus(2,2,0,0,0));
+  Global::set_agv_status(6, AGVstatus(-2,-2,0,0,0));
+  
+  // 绘图
+  MainWindow main_window(&task_handler, &traj);
+
 
   // 然后给小车发命令
   Tracker track;
   int index = 0;
   double v = 0;
   while (true) {
+    // continue;
     // 计算虚拟大车的速度和参考点
     Pose VirtualCenter = task_handler.CalcVirtualCenter();
+    LOG(INFO) << VirtualCenter;
     track.GetTrackParam(traj, VirtualCenter, index, v);
-    
+
     // 发送给每个小车
     std::vector<std::pair<int, Pose>> agvs_res;
-    task_handler.CalcComponentPos(start, agvs_res);
+    task_handler.CalcComponentPos(traj[index], agvs_res);
+    
     for (const auto &it : agvs_res) {
       MSG_CC::FollowPoint job;
       job.m_jobId = 2024;
@@ -129,9 +121,14 @@ int main(int argc, char **argv) {
       job.m_time = std::chrono::steady_clock::now().time_since_epoch().count();
 
       server.send(it.first, (char *)&job, sizeof(job));
-      LOG(INFO) << "send agv: " << it.first << " pos: " << it.second;
+      LOG(INFO) << "send agv: " << it.first << " pos: " << it.second << " v: " << job.m_v;
       Global::set_agv_job_state(it.first, JOBSTATE::following);
+
+      
+      Global::set_agv_status(it.first, AGVstatus(job.m_x-0.02, job.m_y-0.01, job.m_theta, job.m_v, 0));
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     if (v == 0) {
       break;
@@ -139,7 +136,6 @@ int main(int argc, char **argv) {
   }
 
   while (true) {
-  
   }
 
   return 0;

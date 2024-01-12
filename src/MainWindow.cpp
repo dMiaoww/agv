@@ -7,8 +7,9 @@
 #include <glog/logging.h>
 #include <thread>
 
-MainWindow::MainWindow(CoTask *task_handler) {
+MainWindow::MainWindow(CoTask *task_handler, std::vector<Pose>* traj) {
   m_task_handler = task_handler;
+  m_traj = traj;
   window_ox = -5;
   window_oy = -5;
 
@@ -76,6 +77,23 @@ void MainWindow::DrawCar(const double xx, const double yy, const double ttheta,
   draw_list->PopClipRect();
 }
 
+void MainWindow::DrawTraj(const std::vector<Pose>& traj, const ImU32 col){
+  ImDrawList *draw_list = ImGui::GetWindowDrawList();
+  // 获取当前窗口的位置和大小
+  ImVec2 window_pos = ImGui::GetWindowPos();
+  ImVec2 window_size = ImGui::GetWindowSize();
+  for(int i = 0; i < traj.size()-1; ++i){
+    ImVec2 p1, p2;
+    p1.x = window_pos.x + (traj[i].x - window_ox) * 10;
+    p1.y = window_pos.y + window_size.y - (traj[i].y - window_oy) * 10;
+
+    p2.x = window_pos.x + (traj[i+1].x - window_ox) * 10;
+    p2.y = window_pos.y + window_size.y - (traj[i+1].y - window_oy) * 10;
+
+    draw_list->AddLine(p1, p2, col, 2.0f);
+  }
+}
+
 void MainWindow::FreshWindow() {
   glfwMakeContextCurrent(window);
   while (!glfwWindowShouldClose(window)) {
@@ -96,12 +114,17 @@ void MainWindow::FreshWindow() {
                   BIG.theta / M_PI * 180.0);
       DrawCar(BIG.x, BIG.y, BIG.theta, 60, 55, IM_COL32(255, 0, 0, 255));
 
-      // 组件小车
-      Pose agv_10 = Global::get_agv_pose(10);
-      ImGui::Text("10  (%.2f, y: %.2f, theta: %.2f)", agv_10.x, agv_10.y,
-                  agv_10.theta / M_PI * 180.0);
-      DrawCar(agv_10.x, agv_10.y, agv_10.theta, 20, 15,
+      // 组件小车      
+      for(const auto agvid : m_task_handler->getIds()){
+        Pose agvPose = Global::get_agv_pose(agvid);
+        ImGui::Text("id:%d,  (%.2f, y: %.2f, theta: %.2f)", agvid, agvPose.x, agvPose.y,
+                  agvPose.theta / M_PI * 180.0);
+        DrawCar(agvPose.x, agvPose.y, agvPose.theta, 20, 15,
               IM_COL32(0, 255, 0, 255));
+      }
+
+      // 绘制路径 
+      DrawTraj(*m_traj, IM_COL32(255, 255, 255, 255));
     }
     ImGui::End();
 

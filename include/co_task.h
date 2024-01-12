@@ -3,6 +3,7 @@
 #include "common_data.h"
 #include <glog/logging.h>
 #include <utility>
+#include <vector>
 #include "global.h"
 
 
@@ -21,12 +22,21 @@ public:
       // 根据 center 和相对坐标计算实际坐标。假设相对角度为0,先不考虑旋转，只平移
       double sint = sin(it.second.theta);
       double cost = cos(it.second.theta);
-      pose.x = center.x + it.second.x * (-cost) + it.second.y * (sint);  
+      pose.x = center.x + it.second.x * (cost) + it.second.y * (-sint);  
       pose.y = center.y + it.second.x * (sint) + it.second.y * (cost);  
       pose.theta = center.theta;
 
       agvs_res.push_back(std::make_pair(it.first, pose));
     }
+  }
+
+  // 获得组件的id
+  std::vector<int> getIds(){
+    std::vector<int> ids;
+    for(const auto it : agvs_config){
+      ids.push_back(it.first);
+    }
+    return ids;
   }
 
   // 根据组件的位置，计算虚拟大车的坐标
