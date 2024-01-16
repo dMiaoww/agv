@@ -117,14 +117,14 @@ void MainWindow::FreshWindow() {
       // 虚拟大车
       Pose BIG = m_task_handler->CalcVirtualCenter();
       ImGui::Text("BIG (%.2f, y: %.2f, theta: %.2f)", BIG.x, BIG.y,
-                  BIG.theta / M_PI * 180.0);
+                  BIG.theta);
       DrawCar(BIG.x, BIG.y, BIG.theta, 60, 55, IM_COL32(255, 0, 0, 255));
 
       // 组件小车      
       for(const auto agvid : m_task_handler->getIds()){
         Pose agvPose = Global::get_agv_pose(agvid);
         ImGui::Text("id:%d,  (%.2f, y: %.2f, theta: %.2f)", agvid, agvPose.x, agvPose.y,
-                  agvPose.theta / M_PI * 180.0);
+                  agvPose.theta);
         DrawCar(agvPose.x, agvPose.y, agvPose.theta, 20, 15,
               IM_COL32(0, 255, 0, 255));
       }

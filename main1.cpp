@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <glog/logging.h>
 #include <thread>
 #include <utility>
@@ -75,16 +76,16 @@ int main(int argc, char **argv) {
   // 10 号车的相对位置（2，2，0）， 6 号车的相对位置（-2，-2，0）
   // 设置哪些车组成虚拟大车
   std::vector<std::pair<int, Pose>> agvs;
-  agvs.push_back(std::make_pair(10, Pose(2, 2, 0)));
-  agvs.push_back(std::make_pair(6, Pose(-2, -2, 0)));
+  agvs.push_back(std::make_pair(10, Pose(0, 2, 0)));
+  agvs.push_back(std::make_pair(6, Pose(0, -2, 0)));
   task_handler.Init(agvs);
 
   // 生成虚拟大车的路线
-  // std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, 0, 0), Pose(5, 0, 0),
-  //                                           Pose(10, 3, 0), Pose(15, 6, 0));
+  std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, 0, 0), Pose(5, 0, 0),
+                                            Pose(10, 5, 0), Pose(10, 10, 0));
 
-    std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, 0, 0), Pose(5, 0, 0),
-                                            Pose(10, 0, 0), Pose(15, 0, 0));
+    // std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, 0, 0), Pose(5, 0, 0),
+    //                                         Pose(10, 0, 0), Pose(15, 0, 0));
 
   std::vector<double> traj_s;
   traj_s.resize(traj.size());  // 分配空间并且塞满了占位元素，所以不能push_back  
@@ -96,12 +97,9 @@ int main(int argc, char **argv) {
   }
 
 
-
-
-
   // setWorkMode();  // 完成准备工作，就是先让小车到位
-  Global::set_agv_status(10, AGVstatus(2, 2, 0, 0, 0));
-  Global::set_agv_status(6, AGVstatus(-2, -2, 0, 0, 0));
+  Global::set_agv_status(10, AGVstatus(0, 2, 0, 0, 0));
+  Global::set_agv_status(6, AGVstatus(0, -2, 0, 0, 0));
 
   // 绘图
   MainWindow main_window(&task_handler, &traj);
@@ -113,10 +111,12 @@ int main(int argc, char **argv) {
   double v = 0;
   double w = 0;
   while (true) {
-    // 计算虚拟大车的速度和参考点
+    // 计算虚拟大车的速度
     Pose VirtualCenter = task_handler.CalcVirtualCenter();
     LOG(INFO) << VirtualCenter;
-    tracker.Track(traj, 0.5, traj_s, 0, traj.size(), VirtualCenter, v, w, &v, &w, &index);
+    auto state = tracker.Track(traj, 0.5, traj_s, 0, traj.size(), VirtualCenter, v, w, &v, &w, &index);
+    // TODO：根据速度计算下一时刻会到达的地方
+
 
     // 发送给每个小车
     std::vector<std::pair<int, Pose>> agvs_res;
@@ -130,8 +130,11 @@ int main(int argc, char **argv) {
       job.m_x = it.second.x;
       job.m_y = it.second.y;
       job.m_theta = it.second.theta;
-      job.m_v = std::hypot(v - w * 2, w*2);
-      job.m_w = w;
+      // if(it.first == 10)
+      //   job.m_v = std::hypot(v - w * 2, w*2);
+      // else
+      //   job.m_v = std::hypot(v + w * 2, w*2);
+      // job.m_w = w;
       job.m_time = std::chrono::steady_clock::now().time_since_epoch().count();
 
       server.send(it.first, (char *)&job, sizeof(job));
@@ -140,20 +143,19 @@ int main(int argc, char **argv) {
       Global::set_agv_job_state(it.first, JOBSTATE::following);
 
       // 小车的速度和角速度计算位置
-      Global::update_state(it.first, it.second, job.m_v, job.m_w, 0.05);
+      Global::update_state(it.first, it.second, 0.05);
 
-      // Global::set_agv_status(it.first, AGVstatus(job.m_x, job.m_y, job.m_theta, job.m_v, job.m_w));
+      //Global::set_agv_status(it.first, AGVstatus(job.m_x+0.01, job.m_y, job.m_theta, job.m_v, job.m_w));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-    if (v == 0) {
+    if (state != motionplanner::LqrTracker::kTracking) {
       break;
     }
   }
 
-  while (true) {
-  }
 
+  LOG(INFO) << "end";
   return 0;
 }

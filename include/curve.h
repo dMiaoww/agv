@@ -24,7 +24,13 @@ public:
       Pose curvePoint;
       curvePoint.x = a * p0.x + b * p1.x + c * p2.x + d * p3.x;
       curvePoint.y = a * p0.y + b * p1.y + c * p2.y + d * p3.y;
-      curvePoint.theta = atan2(curvePoint.y, curvePoint.x);
+      
+      // Calculate derivative at the point
+      float dx = -3 * pow((1 - t), 2) * p0.x + (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.x + (6 * t * (1 - t) - 3 * t * t) * p2.x + 3 * t * t * p3.x;
+      float dy = -3 * pow((1 - t), 2) * p0.y + (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.y + (6 * t * (1 - t) - 3 * t * t) * p2.y + 3 * t * t * p3.y;
+
+      // theta as the direction of the tangent
+      curvePoint.theta = atan2(dy, dx);
 
       vec.push_back(curvePoint);
     }

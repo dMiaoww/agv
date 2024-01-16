@@ -260,6 +260,7 @@ LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
       // *w = cmd.second;
       // *n_idx = m_begin;
       // return State::kTracking;
+      state_ = RobotState::move;
     }
   }
 

@@ -51,8 +51,7 @@ public:
   }
 
   // 根据速度推算位置
-  static void update_state(const int id, const Pose info, const double v,
-                           const double w, const double time) {
+  static void update_state(const int id, const Pose info, const double time) {
     // 应该还要加控制算法
     motionplanner::LqrW lqr_w;
     motionplanner::ControlStatus status;
