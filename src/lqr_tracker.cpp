@@ -192,7 +192,7 @@ void LqrTracker::SetAlgoParam() { Init(); }
 LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
                                     const double vmax,
                                     const std::vector<double> &traj_s,
-                                    size_t begin_i, size_t end_i, Pose &robot,
+                                    size_t begin_i, size_t end_i, const Pose &robot,
                                     double v0, double w0, double *v, double *w,
                                     int *n_idx) {
   static Pose last_robot;

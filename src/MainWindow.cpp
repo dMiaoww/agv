@@ -7,9 +7,11 @@
 #include <glog/logging.h>
 #include <thread>
 
-MainWindow::MainWindow(CoTask *task_handler, std::vector<Pose>* traj) {
+MainWindow::MainWindow(CoTask *task_handler, std::vector<Pose>* traj, Pose* vl) {
   m_task_handler = task_handler;
   m_traj = traj;
+  m_vl = vl;
+  
   window_ox = -5;
   window_oy = -5;
 
@@ -115,10 +117,9 @@ void MainWindow::FreshWindow() {
 
     if (ImGui::Begin("My window")) {
       // 虚拟大车
-      Pose BIG = m_task_handler->CalcVirtualCenter();
-      ImGui::Text("BIG (%.2f, y: %.2f, theta: %.2f)", BIG.x, BIG.y,
-                  BIG.theta);
-      DrawCar(BIG.x, BIG.y, BIG.theta, 60, 55, IM_COL32(255, 0, 0, 255));
+      ImGui::Text("BIG (%.2f, y: %.2f, theta: %.2f)", m_vl->x, m_vl->y,
+                  m_vl->theta);
+      DrawCar(m_vl->x, m_vl->y, m_vl->theta, 60, 55, IM_COL32(255, 0, 0, 255));
 
       // 组件小车      
       for(const auto agvid : m_task_handler->getIds()){

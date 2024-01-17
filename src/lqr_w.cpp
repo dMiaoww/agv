@@ -39,8 +39,7 @@ double LqrW::UpdateControl(const ControlStatus &status, const double dt) {
   K = Solve(A, B, Q, R);
 
   double res = status.target_vyaw - (K * xwan)(0, 0);
-  LOG(INFO) << "xwan(x, y, theta)" << xwan[0] << " " << xwan[1] << " "
-            << xwan[2] << " k:" << K(0,0) << " " << K(0,1) << " " << K(0,2);
+ 
   // LOG(INFO) << "res " << res.first << "  " << res.second;
   return res;
 }

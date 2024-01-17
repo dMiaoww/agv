@@ -30,7 +30,7 @@ public:
 
   State Track(const std::vector<Pose> &traj, const double vmax,
               const std::vector<double> &traj_s, size_t begin_i, size_t end_i,
-              Pose &robot, double v0, double w0, double *v, double *w,
+              const Pose &robot, double v0, double w0, double *v, double *w,
               int *n_idx);
 
   // State TrackStop(double w0, double *w, double *v) {

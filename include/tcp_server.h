@@ -104,7 +104,7 @@ private:
 				// 位置和速度
         case MSG_AGV::_agvStatusHeadEnum: {
 					MSG_AGV::AgvStatus *agv = (MSG_AGV::AgvStatus *) buf;
-					Global::set_agv_status(m_agv_id, AGVstatus(agv->m_x, agv->m_y, agv->m_theta, agv->m_v, agv->m_w));
+					Global::set_agv_status(m_agv_id, AGVstatus(agv->m_x, agv->m_y, agv->m_theta));
           // LOG(INFO) << m_agv_id << " pos, " << agv->m_x << ", " << agv->m_y << ", " << agv->m_theta;
           break;
         }

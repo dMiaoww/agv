@@ -1,6 +1,7 @@
 #pragma  once 
 
 #include "common_data.h"
+#include <cmath>
 #include <glog/logging.h>
 #include <utility>
 #include <vector>
@@ -13,19 +14,18 @@ public:
     agvs_config = agvs;
   }
 
-  // 传入位置
+  // 传入位置，这里不计算角度，只计算 x y
   void CalcComponentPos(const Pose& center, std::vector<std::pair<int, Pose>>& agvs_res) {
     agvs_res.clear();
     for(const auto& it : agvs_config) {
       Pose pose;
 
-      // 根据 center 和相对坐标计算实际坐标。假设相对角度为0,先不考虑旋转，只平移
       double sint = sin(center.theta);
       double cost = cos(center.theta);
       pose.x = center.x + it.second.x * (cost) + it.second.y * (-sint);  
       pose.y = center.y + it.second.x * (sint) + it.second.y * (cost);  
       pose.theta = center.theta;
-
+      
       agvs_res.push_back(std::make_pair(it.first, pose));
     }
   }
@@ -52,9 +52,9 @@ public:
       const double cy = agvs_config[i].second.y; 
       
       // 世界坐标系下的位置
-      double wx = agv_real.at(agv_id).m_x;
-      double wy = agv_real.at(agv_id).m_y;
-      double wt = agv_real.at(agv_id).m_theta;
+      double wx = agv_real.at(agv_id).pos.x;
+      double wy = agv_real.at(agv_id).pos.y;
+      double wt = agv_real.at(agv_id).pos.theta;
 
       // 世界坐标系下的偏移量
       double dx = cx * cos(wt) - cy * sin(wt);

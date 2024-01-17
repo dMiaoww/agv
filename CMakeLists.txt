@@ -46,5 +46,3 @@ add_executable(main1 main1.cpp)
 target_link_libraries(main1 glog pthread src imgui OpenGL::GL glfw dl)
 
 
-add_executable(single single.cpp)
-target_link_libraries(single glog pthread src imgui OpenGL::GL glfw dl)

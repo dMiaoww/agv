@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common_data.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -13,7 +14,7 @@
 
 class MainWindow {
 public:
-  MainWindow(CoTask *task_handler, std::vector<Pose>* traj);
+  MainWindow(CoTask *task_handler, std::vector<Pose>* traj, Pose* vl);
 
   ~MainWindow();
 
@@ -37,4 +38,6 @@ private:
   std::vector<Pose>* m_traj;
 
   std::thread fresh_thread;
+
+  Pose* m_vl;
 };
