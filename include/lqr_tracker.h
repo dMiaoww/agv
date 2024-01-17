@@ -71,7 +71,7 @@ private:
 
   int sgn(double x);
 
-  double shortest_angular_distance(double from, double to);
+  double angle_dis(double from, double to);
 
 private:
   // ControlParam lqr_param_;

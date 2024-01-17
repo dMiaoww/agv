@@ -110,7 +110,7 @@ int LqrTracker::getNextId(const std::vector<Pose> &traj, const Pose &robot,
 
 int LqrTracker::sgn(double x) { return (x >= 0) ? 1 : -1; }
 
-double LqrTracker::shortest_angular_distance(double from, double to) {
+double LqrTracker::angle_dis(double from, double to) {
   double t = to - from;
   if (t > M_PI) {
     t -= 2 * M_PI;
@@ -236,7 +236,7 @@ LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
     if (getDistance(robot, traj.at(end_i - 1)) <= 0.05)
       m_begin = end_i - 1;
     double theta =
-        shortest_angular_distance(robot.theta, traj.at(m_begin).theta);
+        angle_dis(robot.theta, traj.at(m_begin).theta);
     // 旋转完成
     if (fabs(theta) < 0.01) {
       if (m_begin != (end_i - 1)) {
@@ -275,7 +275,7 @@ LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
     // robot.y += 0.05 * v0 * sin(robot.theta);
     // robot.theta += 0.05 * w0;
 
-    double dtheta = shortest_angular_distance(last_robot.theta, robot.theta);
+    double dtheta = angle_dis(last_robot.theta, robot.theta);
     if (sgn(w0) != sgn(dtheta)) {
       LOG(INFO) << "w0: " << w0 << " dtheta: " << dtheta;
     }
@@ -305,7 +305,7 @@ LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
 
       // 2、小车冲出终点
       if ((min_id + 5) > end_i &&
-          fabs(shortest_angular_distance(atan2(traj.at(end_i - 1).y - robot.y,
+          fabs(angle_dis(atan2(traj.at(end_i - 1).y - robot.y,
                                                traj.at(end_i - 1).x - robot.x),
                                          robot.theta)) > M_PI / 2.0 &&
           getDistance(robot, traj.at(end_i - 1)) > 0.05) {
@@ -355,55 +355,35 @@ LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
       // }
       double v_error = 0.07 * pow(err, -1.075); // 跟踪误差 -> 速度
 
-      int next_index = getNextId(traj, robot, min_id, end_i, pre);
-      if (next_index < *n_idx)
-        next_index = *n_idx;
-      if (next_index == end_i - 1)
-        --next_index; // end_i-1 的角度和之前角度差距很大，不能作为参考点
-
-      std::vector<Pose> traj_ref;
-      std::vector<double> traj_ref_v;
-      traj_ref_v.emplace_back(std::min({v_error, v_curv, vmax}));
-      if (next_index + p_ < end_i) {
-        traj_ref.assign(std::next(traj.begin(), next_index),
-                        std::next(traj.begin(), next_index + p_));
-      } else {
-        traj_ref.assign(std::next(traj.begin(), next_index),
-                        std::next(traj.begin(), end_i - 1));
-        traj_ref.insert(traj_ref.end(), next_index + p_ - end_i + 1,
-                        traj[end_i - 2]);
-      }
-      LOG(INFO) << "predist: " << pre << " cmax: " << cmax
-                << " v_curv: " << v_curv << " v_error: " << v_error
-                << " error: " << err;
-
+      
       m_otg_lim.aMax = acc_ ;
       if (vmax < 0.001) {
         m_otg_lim.aMax = acc_;
       }
 
-      double dis_to_end = traj_s.back() - traj_s[next_index];
-      LOG(INFO) << traj_s.back() << " " <<  traj_s[next_index] << " next_index " << next_index;
-      m_otg_lim.vMax = traj_ref_v[0];
+      double dis_to_end = traj_s.back() - traj_s[min_id];
+      m_otg_lim.vMax = vmax;
       OtgFilter::VelParam target = {dis_to_end, 0, 0, 0};
       m_otg.qk.v = v0;
       m_otg.qk.d = 0;
       m_otg.runCycleS1(1000 * dt_, m_otg_lim, target);
-      traj_ref_v[0] = m_otg.qk.v;
+
       LOG(INFO) << " lim_v: " << m_otg_lim.vMax
                 << " v: " << m_otg.qk.v << " a: " << (m_otg.qk.v - v0) / dt_;
 
-      // std::pair<double, double> cmd =
-      //     GetCmd(traj_ref, traj_ref_v, robot.x, robot.y, robot.theta, v0,
-      //     w0);
-
       *v = m_otg.qk.v;
 
-      double dis = getDistance(traj.at(0), traj.at(1)) + 1e-6;
-      *w = shortest_angular_distance(traj.at(0).theta, traj.at(1).theta) / dis *
-           *v;
+      if(min_id < traj.size()-1){
+        double dis = getDistance(traj.at(min_id), traj.at(min_id+1)) + 1e-6;
+        *w = angle_dis(traj.at(min_id).theta, traj.at(min_id+1).theta) / dis * m_otg.qk.v;
+      } else{
+        *w = 0;
+      }
 
-      *n_idx = min_id;
+      double time_dis = (*v)*0.05;
+      double next_index = getNextId(traj, traj[min_id], min_id, end_i, time_dis);
+
+      *n_idx = next_index;   // 0.05 秒以后 agv 会到达的位置
       m_begin = min_id;
 
       v1 = v0;

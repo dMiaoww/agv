@@ -130,19 +130,7 @@ int main(int argc, char **argv) {
     }
 
     // 根据速度计算下一时刻会到达的地方
-    {
-      Pose tt;
-      if (w == 0) {
-        tt.x = vl.x + v * 0.05 * cos(vl.theta);
-        tt.y = vl.y + v * 0.05 * sin(vl.theta);
-        tt.theta = vl.theta;
-      } else {
-        tt.theta = vl.theta + w * 0.05;
-        tt.x = vl.x + v / w * 0.05 * (sin(tt.theta) - sin(vl.theta));
-        tt.y = vl.y - v / w * 0.05 * (cos(tt.theta) - cos(vl.theta));
-      }
-      vl = tt;
-    }
+    vl = traj[index];
 
     // 发送给每个小车
     std::vector<std::pair<int, Pose>> agvs_res;
