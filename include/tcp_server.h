@@ -57,7 +57,7 @@ public:
   }
 
   void send(char *data, int length) {
-    ::send(m_fd, data, length, 0);
+    int size = ::send(m_fd, data, length, 0);
   }
 
   bool connected(){
@@ -75,15 +75,22 @@ private:
     send((char *)&heartbeat, sizeof(heartbeat));
   }
 
+  long getMsTimeStamp(){
+    auto now = std::chrono::steady_clock::now();
+    auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+    auto value = now_ms.time_since_epoch().count();
+    return value;
+  }
+
   void func() {
     // 接收消息
 		char buf[1024];
-    static auto last_time = std::chrono::steady_clock::now();
+    static auto last_time = getMsTimeStamp();
     while (isconnect) {
       // send heartbeat
-      auto curr_time = std::chrono::steady_clock::now();
-      std::chrono::duration<double> e = curr_time - last_time;
-      if(e.count() > 1) {
+      auto curr_time = getMsTimeStamp();
+      auto e = curr_time - last_time;
+      if(e > 1000) {
         sendHeartBeat();
         last_time = curr_time;
       }
@@ -99,7 +106,7 @@ private:
       }
 			// TODO：解析消息
 			MSG_AGV::BaseData *base_agv = (MSG_AGV::BaseData *) buf;
-      // LOG(INFO) << "recv msg of "<< m_agv_id << ", type " << base_agv->m_head;
+      // LOG(INFO) << "recv msg of "<< m_agv_id << ", type " << (int)base_agv->m_head;
 			switch (base_agv->m_head) {
 				// 位置和速度
         case MSG_AGV::_agvStatusHeadEnum: {
@@ -203,7 +210,10 @@ public:
     auto iter = clients_.find(agvid);
 		if(iter != clients_.end()) {
       iter->second->send(data, length);
+      return;
     }
+    LOG(ERROR) << "no client"; 
+    return;
 	}
 
   ~TcpServer() { 

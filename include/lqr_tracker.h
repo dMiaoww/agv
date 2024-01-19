@@ -41,7 +41,7 @@ public:
   void Init() {
     state_ = RobotState::free;
     m_otg.reset();
-    m_otg_lim.aMax = 0.3;
+    m_otg_lim.aMax = 0.1;
     m_otg_lim.jMax = 1;
     v1 = 0;
     w1 = 0;
@@ -82,7 +82,7 @@ private:
   double v1, w1;
   double v2, w2;
 
-  double acc_ = 0.3;
+  double acc_ = 0.1;
   double p_ = 3;
   double dt_ = 0.05;
 

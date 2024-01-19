@@ -139,18 +139,20 @@ extern "C"
         FollowPoint() : m_x(0), m_y(0), m_theta(0.0)
         {
             m_head = _followPointHeadEnum;
+            int s = sizeof(FollowPoint);
+            memcpy(m_dataLength, &s, TCP_DATA_LENGTH_SIZE_CC);
         }
         FollowPoint(FollowPoint *ptr) : BaseStruct((BaseStruct *)ptr),
                                 m_x(ptr->m_x), m_y(ptr->m_y), m_theta(ptr->m_theta),
-                                m_v(ptr->m_v), m_w(ptr->m_w), m_time(ptr->m_time)
+                                m_time(ptr->m_time)
         {
         }
         FollowPoint(FollowPoint &ptr) : BaseStruct(&ptr),
                                 m_x(ptr.m_x), m_y(ptr.m_y), m_theta(ptr.m_theta), 
-                                m_v(ptr.m_v), m_w(ptr.m_w), m_time(ptr.m_time)
+                                m_time(ptr.m_time)
         {
         }
-        float m_x, m_y, m_theta, m_v, m_w;
+        float m_x, m_y, m_theta;
         long m_time;
     };
 

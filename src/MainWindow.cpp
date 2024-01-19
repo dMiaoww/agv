@@ -13,7 +13,7 @@ MainWindow::MainWindow(CoTask *task_handler, std::vector<Pose>* traj, Pose* vl) 
   m_vl = vl;
   
   window_ox = -5;
-  window_oy = -5;
+  window_oy = -10;
 
   // 初始化GLFW
   glfwInit();
@@ -124,6 +124,7 @@ void MainWindow::FreshWindow() {
       // 组件小车      
       for(const auto agvid : m_task_handler->getIds()){
         Pose agvPose = Global::get_agv_pose(agvid);
+        // LOG(INFO) << "agvid: "<< agvid << "pose:" << agvPose; 
         ImGui::Text("id:%d,  (%.2f, y: %.2f, theta: %.2f)", agvid, agvPose.x, agvPose.y,
                   agvPose.theta);
         DrawCar(agvPose.x, agvPose.y, agvPose.theta, 20, 15,

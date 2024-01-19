@@ -5,6 +5,7 @@
 #include <cstring>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 // 模拟 AGV 的运动情况
 class AGV_Model {

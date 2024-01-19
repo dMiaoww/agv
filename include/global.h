@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <glog/logging.h>
 #include <mutex>
 #include <sys/stat.h>
 #include <unordered_map>
@@ -17,15 +18,15 @@ struct AGVstatus {
 
   AGVstatus() {}
   AGVstatus(float x, float y, float theta){
-    pos.x = 0, pos.y = 0, pos.theta = 0;
+    pos.x = x, pos.y = y, pos.theta = theta;
   }
 };
 
 class Global {
 public:
-  static void set_agv_status(int id, AGVstatus &&status) {
+  static void set_agv_status(int id, const AGVstatus &status) {
     std::unique_lock<std::mutex> lock(global_mutex);
-    allagvs[id] = std::move(status);
+    allagvs[id] = status;
   }
 
   static void set_agv_job_state(int id, JOBSTATE s) {
@@ -40,7 +41,12 @@ public:
 
   static Pose get_agv_pose(const int id) {
     std::unique_lock<std::mutex> lock(global_mutex);
-    return allagvs[id].pos;
+    if (allagvs.find(id) != allagvs.end()) {
+      return allagvs[id].pos;
+    }
+    else {
+      return Pose(0,0,0);
+    }
   }
 
   // 从队列中删掉
@@ -55,6 +61,11 @@ public:
   static void set_pose(const int id, const Pose& info) {
     std::unique_lock<std::mutex> lock(global_mutex);
     allagvs[id].pos = info;
+  }
+
+  static int get_size() {
+    std::unique_lock<std::mutex> lock(global_mutex);
+    return allagvs.size();
   }
 
 private:
