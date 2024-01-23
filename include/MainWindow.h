@@ -28,11 +28,17 @@ private:
   
   void DrawTraj(const std::vector<Pose>&, const ImU32 col);
 
+  void DrawCoordinateSystem();
+
+  void DrawGrid();
+
 private:
   GLFWwindow *window;
   int window_height;
-  int window_ox;
+  int window_ox;  // 世界坐标系的左下角坐标
   int window_oy;
+
+  const int ratio;  // 比例
 
   CoTask *m_task_handler;
   std::vector<Pose>* m_traj;

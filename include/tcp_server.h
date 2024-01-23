@@ -4,6 +4,7 @@
 #include "MsgStrctAgv.h"
 #include "MsgStrctCC.h"
 #include "global.h"
+#include "common_data.h"
 
 
 #include <arpa/inet.h>
@@ -111,7 +112,7 @@ private:
 				// 位置和速度
         case MSG_AGV::_agvStatusHeadEnum: {
 					MSG_AGV::AgvStatus *agv = (MSG_AGV::AgvStatus *) buf;
-					Global::set_agv_status(m_agv_id, AGVstatus(agv->m_x, agv->m_y, agv->m_theta));
+					Global::set_agv_pos(m_agv_id, Pose(agv->m_x, agv->m_y, agv->m_theta));
           // LOG(INFO) << m_agv_id << " pos, " << agv->m_x << ", " << agv->m_y << ", " << agv->m_theta;
           break;
         }
@@ -185,7 +186,7 @@ public:
         std::size_t pos = s.find_last_of('.');
         std::string lastPart = s.substr(pos + 1);
         int agvid = std::stoi(lastPart) %100;
-        LOG(INFO) << "get connected requeset from " << agvid << ":"
+        LOG(INFO) << "get connect requeset from " << agvid << ":"
                   << ntohs(clientAddress.sin_port);
         
         std::unique_lock<std::mutex> lock(mutex_);
@@ -197,7 +198,7 @@ public:
         } else {
           auto ptr = std::make_shared<Client>(clientfd, agvid);
           clients_.insert(std::make_pair(agvid, ptr));
-          LOG(INFO) << "save client, fd: " << clientfd << " agv: " << static_cast<void*>(ptr.get());
+          LOG(INFO) << "save client, fd: " << clientfd << " agv: " << agvid;
         }
       }
     });
@@ -212,7 +213,7 @@ public:
       iter->second->send(data, length);
       return;
     }
-    LOG(ERROR) << "no client"; 
+    LOG(ERROR) << "no client:" << agvid; 
     return;
 	}
 

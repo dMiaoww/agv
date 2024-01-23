@@ -22,7 +22,7 @@
 
 TcpServer server(3333);
 // 设置任务起点
-Pose start(0, -5, 0);
+Pose start(0, -7, 0);
 CoTask task_handler;
 
 void setWorkMode() {
@@ -75,20 +75,19 @@ int main(int argc, char **argv) {
   GLog_set glog_set(argv[0]);
   server.start();
 
-  // 10 号车的相对位置（2，2，0）， 6 号车的相对位置（-2，-2，0）
+
   // 设置哪些车组成虚拟大车
   std::vector<std::pair<int, Pose>> agvs;
-  agvs.push_back(std::make_pair(7, Pose(0, -2, 0)));
-  // agvs.push_back(std::make_pair(6, Pose(0, -2, 0)));
+  agvs.push_back(std::make_pair(7, Pose(0, -1, 0)));
+  agvs.push_back(std::make_pair(18, Pose(0, 1, 0)));
   task_handler.Init(agvs);
 
   // 生成虚拟大车的路线
-  // std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, 0, 0), Pose(5, 0,
-  // 0),
-  //                                           Pose(10, 5, 0), Pose(10, 10, 0));
+  std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, -7, 0), Pose(2, -7, 0),
+                                            Pose(4, -8, 0), Pose(6, -9, 0));
 
-  std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, -5, 0), Pose(2, -5, 0),
-                                            Pose(4, -5, 0), Pose(6, -5, 0));
+  // std::vector<Pose> traj = BezierCurve::get(1000, Pose(0, -5, 0), Pose(2, -5, 0),
+  //                                           Pose(4, -5, 0), Pose(6, -5, 0));
 
   std::vector<double> traj_s;
   traj_s.resize(traj.size()); // 分配空间并且塞满了占位元素，所以不能push_back
@@ -107,7 +106,7 @@ int main(int argc, char **argv) {
 
 
   while(true){
-    if(Global::get_size() == 1) break;
+    if(Global::get_size() == 2) break;
   }
 
   setWorkMode(); // 完成准备工作，就是先让小车到位

@@ -17,16 +17,20 @@ struct AGVstatus {
   JOBSTATE job_state = JOBSTATE::free;
 
   AGVstatus() {}
-  AGVstatus(float x, float y, float theta){
-    pos.x = x, pos.y = y, pos.theta = theta;
+  AGVstatus(const Pose& p){
+    pos.x = p.x, pos.y = p.y, pos.theta = p.theta;
   }
 };
 
 class Global {
 public:
-  static void set_agv_status(int id, const AGVstatus &status) {
+  static void set_agv_pos(int id, const Pose &pose) {
     std::unique_lock<std::mutex> lock(global_mutex);
-    allagvs[id] = status;
+    if(allagvs.find(id) != allagvs.end()){
+      allagvs[id].pos = pose;
+      return;
+    }
+    allagvs[id] = AGVstatus(pose);
   }
 
   static void set_agv_job_state(int id, JOBSTATE s) {
