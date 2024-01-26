@@ -11,7 +11,7 @@ namespace motionplanner {
 
 LqrTracker::LqrTracker() {
   state_ = RobotState::free;
-  m_begin = 0;
+  index = 0;
   m_otg.reset();
 }
 
@@ -120,27 +120,27 @@ double LqrTracker::angle_dis(double from, double to) {
   return t;
 }
 
-// std::pair<double, double> LqrTracker::getRotateCmd(double curr_theta,
-//                                                    double target_theta,
-//                                                    double v, double w) {
-//   std::pair<double, double> cmd;
-//   cmd.first = 0;
+std::pair<double, double> LqrTracker::getRotateCmd(double curr_theta,
+                                                   double target_theta,
+                                                   double v, double w) {
+  std::pair<double, double> cmd;
+  cmd.first = 0;
 
-//   cmd.second = 1 * shortest_angular_distance(curr_theta, target_theta);
+  cmd.second = 1 * angle_dis(curr_theta, target_theta);
 
-//   cmd.second = std::max({-max_w_, w - alpha_ * dt_, cmd.second});
-//   cmd.second = std::min({max_w_, w + alpha_ * dt_, cmd.second});
+  cmd.second = std::max({-max_w_, w - alpha_ * dt_, cmd.second});
+  cmd.second = std::min({max_w_, w + alpha_ * dt_, cmd.second});
 
-//   // 防止终点处的速度太慢，限制最小角速度
-//   if (fabs(cmd.second) < min_w_) {
-//     cmd.second = sgn(cmd.second) * min_w_;
-//   }
+  // 防止终点处的速度太慢，限制最小角速度
+  if (fabs(cmd.second) < min_w_) {
+    cmd.second = sgn(cmd.second) * min_w_;
+  }
 
-//   LOG(INFO) << "cmdrotate(w): " << cmd.second << " robot_pose " << curr_theta
-//              << " target_theta " << target_theta;
+  LOG(INFO) << "cmdrotate(w): " << cmd.second << " robot_pose " << curr_theta
+            << " target_theta " << target_theta;
 
-//   return cmd;
-// }
+  return cmd;
+}
 
 // std::pair<double, double> LqrTracker::GetCmd(const std::vector<Pose> &traj,
 //                                              const std::vector<double>
@@ -192,75 +192,30 @@ void LqrTracker::SetAlgoParam() { Init(); }
 LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
                                     const double vmax,
                                     const std::vector<double> &traj_s,
-                                    size_t begin_i, size_t end_i, const Pose &robot,
-                                    double v0, double w0, double *v, double *w,
-                                    int *n_idx) {
-  static Pose last_robot;
-  *v = 0;
-  *w = 0;
-  if (*n_idx == 0 || *n_idx >= end_i)
-    Init();
-
+                                    Pose &robot) {
   // robot at start point
   if (state_ == RobotState::free) {
-    // 起点距离当前位置太远
-    m_begin = getNearestId(traj, robot, begin_i, end_i);
-    if (getDistance(robot, traj.at(m_begin)) > 0.2) {
-      LOG(ERROR) << "wrong start point, "
-                 << "robot: " << robot.x << " " << robot.y
-                 << " begin: " << begin_i << " traj[" << m_begin
-                 << "]:" << traj.at(m_begin).x << " " << traj.at(m_begin).y;
-      Init();
-      *v = 0;
-      *w = 0;
-      *n_idx = begin_i;
-      return State::kFailed;
-    }
-
-    // 距离远的时候固定找10厘米之外的点
-    if (getDistance(robot, traj.at(end_i - 1)) >= 0.1) {
-      m_begin = getNextId(traj, robot, m_begin, end_i, 0.1);
-    }
-    if (m_begin == 0)
-      m_begin++; // 短路径会进入这个分支
-    if (m_begin >= end_i)
-      return State::kFailed;
-    LOG(INFO) << "m_begin: " << m_begin << " end_i(traj size): " << end_i
-              << " begin_i: " << begin_i;
-
+    if (index == 0)
+      index++;
     state_ = RobotState::rotate1;
     LOG(INFO) << "robot change state free to rotate1";
   }
 
   if (state_ == RobotState::rotate1) {
-    if (getDistance(robot, traj.at(end_i - 1)) <= 0.05)
-      m_begin = end_i - 1;
-    double theta =
-        angle_dis(robot.theta, traj.at(m_begin).theta);
+    double theta = angle_dis(robot.theta, traj.at(index).theta);
     // 旋转完成
     if (fabs(theta) < 0.01) {
-      if (m_begin != (end_i - 1)) {
-        state_ = RobotState::move;
-        last_robot = robot;
-        m_otg.reset();
-        LOG(INFO) << "robot change state rotate1 to move";
-      } else {
-        Init();
-        *n_idx = end_i - 1;
-        *v = 0;
-        *w = 0;
-        LOG(INFO) << "0.The robot has reached the target point";
-        return State::kSuccessful;
-      }
+      state_ = RobotState::move;
+      m_otg.reset();
+      LOG(INFO) << "robot change state rotate1 to move";
     }
     // 旋转中
     else {
-      // auto cmd = getRotateCmd(robot.theta, traj.at(m_begin).theta, v0, w0);
-      // *v = cmd.first;
-      // *w = cmd.second;
-      // *n_idx = m_begin;
-      // return State::kTracking;
-      state_ = RobotState::move;
+      auto cmd = getRotateCmd(robot.theta, traj.at(index).theta, v1, w1);
+      // 更新坐标
+      w1 = cmd.second;
+      robot.theta += cmd.second * dt_;
+      return State::kTracking;
     }
   }
 
@@ -275,131 +230,85 @@ LqrTracker::State LqrTracker::Track(const std::vector<Pose> &traj,
     // robot.y += 0.05 * v0 * sin(robot.theta);
     // robot.theta += 0.05 * w0;
 
-    double dtheta = angle_dis(last_robot.theta, robot.theta);
-    if (sgn(w0) != sgn(dtheta)) {
-      LOG(INFO) << "w0: " << w0 << " dtheta: " << dtheta;
-    }
-
-    int min_id = getNearestId(traj, robot, m_begin, end_i);
-    LOG(INFO) << "m_begin: " << m_begin << " min_id: " << min_id
-              << " min_dis: " << getMinDistanceToLine(robot, traj.at(min_id));
+    int index = getNearestId(traj, robot, index,
+                             traj.size()); // 这里得到index是虚拟车当前的位置
 
     // robot at stop point
-    if ((min_id + 5) > end_i &&
-        getDistance(robot, traj.at(end_i - 1)) <= 0.05) {
+    if ((index + 5) > traj.size() && getDistance(robot, traj.back()) <= 0.02) {
       state_ = RobotState::rotate2;
       LOG(INFO) << "robot change state move to rotate2";
     } else {
-      // 1、小车脱轨
-      if (fabs(getMinDistanceToLine(traj.at(min_id), robot)) > 0.15) {
-        LOG(ERROR) << "robot far away from traj, min_traj(x,y,theta): "
-                   << traj.at(min_id).x << " " << traj.at(min_id).y << " "
-                   << traj.at(min_id).theta << " agv(x,y,theta): " << robot.x
-                   << " " << robot.y << " " << robot.theta;
-        *v = 0;
-        *w = 0;
-        *n_idx = min_id;
-        Init();
-        return kFailed;
-      }
-
-      // 2、小车冲出终点
-      if ((min_id + 5) > end_i &&
-          fabs(angle_dis(atan2(traj.at(end_i - 1).y - robot.y,
-                                               traj.at(end_i - 1).x - robot.x),
-                                         robot.theta)) > M_PI / 2.0 &&
-          getDistance(robot, traj.at(end_i - 1)) > 0.05) {
-        LOG(ERROR) << "robot over traj end " << traj.at(end_i - 1).x << " "
-                   << traj.at(end_i - 1).y << " " << traj.at(end_i - 1).theta
-                   << " agv(x,y): " << robot.x << " " << robot.y << " "
-                   << robot.theta
-                   << " dis to end: " << getDistance(robot, traj.at(end_i - 1));
-        *v = 0;
-        *w = 0;
-        *n_idx = end_i - 1;
-        Init();
-        return kFailed;
-      }
 
       // 3、正常
-      double cmax = calculateCurvature(traj, min_id);
+      double cmax = calculateCurvature(traj, index);
       double v_curv = 0.25 * pow(cmax, -0.8); // 曲率 -> 速度
-      for (int i = min_id + 1; i < traj_s.size(); i++) {
+      for (int i = index + 1; i < traj_s.size(); i++) {
         double c2 = calculateCurvature(traj, i);
         cmax = std::max(cmax, c2);
-
         double v = 0.25 * pow(c2, -0.8);
-        double s = traj_s[i] - traj_s[min_id];
-        if (v < v0) {
-          double dec_s = 0.5 * (v0 * v0 - v * v) / acc_ + 0.5; // 计算减速距离
+        double s = traj_s[i] - traj_s[index];
+        if (v < v1) {
+          double dec_s = 0.5 * (v1 * v1 - v * v) / acc_ + 0.5; // 计算减速距离
           if (dec_s > s) {
             // 减速距离大于实际距离，需要减速
             v_curv = std::min(v_curv, v);
           }
         }
-        if (s > 0.5 * v0 * v0 / acc_ + 0.5)
+        if (s > 0.5 * v1 * v1 / acc_ + 0.5)
           break;
       }
 
-      // double v_curv = 0.15 * pow(cmax, -0.7);
-
-      double pre = 0;
-      // double latErr = fabs(getMinDistanceToLine(traj.at(min_id), robot));
-      // double thetaErr =
-      //     fabs(shortest_angular_distance(robot.theta, traj.at(min_id).theta));
-      double err = 0;
-      // if ( err > 0.05) {
-      //   pre = std::max({2*err, pre});   // 作用： 避免看的太近超调走S型
-      //   pre = std::min(pre, 0.06*pow(cmax, -0.5));   // 作用：
-      //   避免转弯的时候看的太远
-      // }
-      double v_error = 0.07 * pow(err, -1.075); // 跟踪误差 -> 速度
-
-      
-      m_otg_lim.aMax = acc_ ;
+      m_otg_lim.aMax = acc_;
       if (vmax < 0.001) {
         m_otg_lim.aMax = acc_;
       }
-
-      double dis_to_end = traj_s.back() - traj_s[min_id];
-      m_otg_lim.vMax = vmax;
+      double dis_to_end = traj_s.back() - traj_s[index];
+      m_otg_lim.vMax = std::min(vmax, v_curv);
       OtgFilter::VelParam target = {dis_to_end, 0, 0, 0};
-      m_otg.qk.v = v0;
+      m_otg.qk.v = v1;
       m_otg.qk.d = 0;
       m_otg.runCycleS1(1000 * dt_, m_otg_lim, target);
+      LOG(INFO) << " lim_v: " << m_otg_lim.vMax << " v: " << m_otg.qk.v
+                << " a: " << (m_otg.qk.v - v1) / dt_;
 
-      LOG(INFO) << " lim_v: " << m_otg_lim.vMax
-                << " v: " << m_otg.qk.v << " a: " << (m_otg.qk.v - v0) / dt_;
-
-      *v = m_otg.qk.v;
-
-      if(min_id < traj.size()-1){
-        double dis = getDistance(traj.at(min_id), traj.at(min_id+1)) + 1e-6;
-        *w = angle_dis(traj.at(min_id).theta, traj.at(min_id+1).theta) / dis * m_otg.qk.v;
-      } else{
-        *w = 0;
+      double v0 = m_otg.qk.v;
+      double w0;
+      if (index < traj.size() - 1) {
+        double dis = getDistance(traj.at(index), traj.at(index + 1)) + 1e-6;
+        w0 = angle_dis(traj.at(index).theta, traj.at(index + 1).theta) /
+                dis * v0;
+      } else {
+        w0 = 0;
       }
 
-      double time_dis = (*v)*0.05;
-      double next_index = getNextId(traj, traj[min_id], min_id, end_i, time_dis);
+      double time_dis = v0 * dt_;
+      double next_index = getNextId(traj, traj[index], index, traj.size(),
+                                    time_dis); // 这里是下一时刻虚拟车到达的位置
 
-      *n_idx = next_index;   // 0.05 秒以后 agv 会到达的位置
-      m_begin = min_id;
+      index = next_index; // 0.05 秒以后 agv 会到达的位置
+      robot = traj[next_index];
 
       v1 = v0;
       w1 = w0;
       v2 = v1;
       w2 = w1;
-
-      LOG(INFO) << "next_i:" << next_index
-                << ", traj(x_y_theta):" << traj.at(next_index).x << " "
-                << traj.at(next_index).y << " " << traj.at(next_index).theta
-                << " robot(x_y_theta)" << robot.x << " " << robot.y << " "
-                << robot.theta << ",end_i:" << end_i << ",v_w:" << *v << " "
-                << *w;
-      last_robot = robot;
       return State::kTracking;
     }
+  }
+
+  if (state_ == RobotState::rotate2) {
+    double theta =
+        angle_dis(robot.theta, traj.back().theta);
+    double dis  = getDistance(robot, traj.back());
+    if (fabs(theta) < 0.01) {
+      Init();
+      LOG(INFO) << "0.The robot has reached the target point, dis: " << dis;
+      return State::kSuccessful;
+    }
+    auto cmd = getRotateCmd(robot.theta, traj.back().theta, v1, w1);
+    w1 = cmd.second;
+    robot.theta += cmd.second * dt_;
+    return State::kTracking;
   }
 }
 

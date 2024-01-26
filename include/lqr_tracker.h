@@ -28,10 +28,9 @@ public:
   // read param from config file track.yaml
   void SetAlgoParam();
 
+  // 这里会对 vitrual_robot 的位置进行更新
   State Track(const std::vector<Pose> &traj, const double vmax,
-              const std::vector<double> &traj_s, size_t begin_i, size_t end_i,
-              const Pose &robot, double v0, double w0, double *v, double *w,
-              int *n_idx);
+              const std::vector<double> &traj_s, Pose& robot);  
 
   // State TrackStop(double w0, double *w, double *v) {
   //   Init();
@@ -47,7 +46,7 @@ public:
     w1 = 0;
     v2 = 0;
     w2 = 0;
-    m_begin = 0;
+    index = 0;
   }
 
 private:
@@ -76,15 +75,17 @@ private:
 private:
   // ControlParam lqr_param_;
   RobotState state_;
-  size_t m_begin;
+  size_t index;
   OtgFilter m_otg;
 
   double v1, w1;
   double v2, w2;
 
   double acc_ = 0.1;
-  double p_ = 3;
   double dt_ = 0.05;
+  double max_w_ = 0.3;
+  double alpha_ = 0.2;
+  double min_w_ = 0.02;
 
   // AGVTYPE agv_type_;
 public:

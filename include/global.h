@@ -10,7 +10,7 @@
 #include "common_data.h"
 #include "lqr_w.h"
 
-enum class JOBSTATE { free, send_task, pre_working, following, finish };
+enum class JOBSTATE { free, send_task, running, finish };
 
 struct AGVstatus {
   Pose pos;

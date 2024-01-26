@@ -1,34 +1,38 @@
 #pragma  once 
 
 #include "common_data.h"
+#include "tcp_server.h"
+#include "lqr_tracker.h"
+
+#include <atomic>
 #include <cmath>
+#include <condition_variable>
 #include <glog/logging.h>
+#include <mutex>
+#include <thread>
 #include <utility>
 #include <vector>
 #include "global.h"
 
+  enum class CoTaskState{
+    init,
+    preworking,
+    prework_finish,
+    following,
+    error_pause,
+    finish
+  };
 
 class CoTask {
 public:
-  void Init(const std::vector<std::pair<int, Pose>>& agvs){
+  CoTask(const std::vector<std::pair<int, Pose>>& agvs, TcpServer* server, std::vector<Pose>* traj, Pose* vl){
     agvs_config = agvs;
+    m_server = server;
+    m_state = CoTaskState::init;
+    m_traj = traj;
+    m_vl = vl;
   }
 
-  // 传入位置，这里不计算角度，只计算 x y
-  void CalcComponentPos(const Pose& center, std::vector<std::pair<int, Pose>>& agvs_res) {
-    agvs_res.clear();
-    for(const auto& it : agvs_config) {
-      Pose pose;
-
-      double sint = sin(center.theta);
-      double cost = cos(center.theta);
-      pose.x = center.x + it.second.x * (cost) + it.second.y * (-sint);  
-      pose.y = center.y + it.second.x * (sint) + it.second.y * (cost);  
-      pose.theta = center.theta;
-      
-      agvs_res.push_back(std::make_pair(it.first, pose));
-    }
-  }
 
   // 获得组件的id
   std::vector<int> getIds(){
@@ -67,7 +71,30 @@ public:
     return p;
   }
 
+  void StartPrework(Pose start);
+
+  bool StartFollow();
+
+  void Pause(bool pause);
+
+private:
+  void FollowThread();
+
+  // 计算组件位置
+  void CalcComponentPos(const Pose& center, std::vector<std::pair<int, Pose>>& agvs_res);
 
 private:
   std::vector<std::pair<int, Pose>> agvs_config;
+  CoTaskState m_state;
+  std::vector<Pose>* m_traj;
+  Pose* m_vl;
+  TcpServer* m_server;
+  motionplanner::LqrTracker tracker;
+
+  std::thread m_follow_thread;
+  std::atomic<bool> m_thread_run;
+  std::atomic<bool> m_pause;
+
+  std::mutex mtx;
+  std::condition_variable cv; 
 };

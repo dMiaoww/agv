@@ -6,6 +6,7 @@
 #include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <functional>
 #include <thread>
 #include <vector>
 
@@ -21,6 +22,10 @@ public:
   void Init();
 
   void FreshWindow();
+
+  void setCb_followStartClick(std::function<void()> func){
+    m_followStartClick = func;
+  }
 
 private:
   void DrawCar(const double xx, const double yy, const double ttheta,
@@ -46,4 +51,6 @@ private:
   std::thread fresh_thread;
 
   Pose* m_vl;
+
+  std::function<void()> m_followStartClick;
 };

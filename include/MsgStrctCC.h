@@ -79,8 +79,9 @@ extern "C"
         _resourceRecoverHeadEnum = 0xF9,     // 资源对齐
         _clearAllJobsOnAgvHeadEnum = 0x31,   // 清除所有任务
         _screenDisplayHeadEnum = 0x32,       // 要求小车屏幕上显示指定的字符串，变长消息，没有具体的结构体
-        _agvNewRouteHeadEnum   = 0x33,        // AGV的新路线格式
-        _followPointHeadEnum   = 0x40
+        _agvNewRouteHeadEnum   = 0x33,      // AGV的新路线格式
+        _followPointHeadEnum = 0x40,                 // 跟随任务中的单个点
+        _followJobFinishHeadEnum = 0x41,             // 跟随任务结束
     };
 
     //心跳包
@@ -154,6 +155,18 @@ extern "C"
         }
         float m_x, m_y, m_theta;
         long m_time;
+    };
+
+    // 正常结束, 当前任务完成
+    struct FollowJobFinish: public BaseStruct{
+        FollowJobFinish(){
+            m_head = _followJobFinishHeadEnum;
+            int s = sizeof(FollowJobFinish);
+            memcpy(m_dataLength, &s, TCP_DATA_LENGTH_SIZE_CC);
+        }
+
+        FollowJobFinish(FollowJobFinish *ptr): BaseStruct((BaseStruct *)ptr){}
+        FollowJobFinish(FollowJobFinish &ptr): BaseStruct(&ptr){}
     };
 
     // 只到达目标工位，不执行工位下的macro

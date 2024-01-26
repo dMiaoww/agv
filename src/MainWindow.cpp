@@ -7,15 +7,14 @@
 #include <glog/logging.h>
 #include <thread>
 
-MainWindow::MainWindow(CoTask *task_handler, std::vector<Pose> *traj,
-                       Pose *vl):ratio(50) {
+MainWindow::MainWindow(CoTask *task_handler, std::vector<Pose> *traj, Pose *vl)
+    : ratio(50) {
   m_task_handler = task_handler;
   m_traj = traj;
   m_vl = vl;
 
   window_ox = -5;
   window_oy = -15;
-
 
   // 初始化GLFW
   glfwInit();
@@ -118,6 +117,11 @@ void MainWindow::FreshWindow() {
     ImGui::NewFrame();
 
     if (ImGui::Begin("My window")) {
+      if (ImGui::Button("Follow work")) {
+        // 按钮被按下时，打印消息
+        m_followStartClick();
+      }
+
       // 虚拟大车
       ImGui::Text("BIG (%.2f, y: %.2f, theta: %.2f)", m_vl->x, m_vl->y,
                   m_vl->theta);
@@ -154,21 +158,18 @@ void MainWindow::FreshWindow() {
   }
 }
 
-void MainWindow::DrawCoordinateSystem() {
-
-}
+void MainWindow::DrawCoordinateSystem() {}
 
 void MainWindow::DrawGrid() {
   ImDrawList *draw_list = ImGui::GetWindowDrawList();
   ImVec2 size = ImGui::GetWindowSize();
 
-
-  for (int i = 0; i <= size.x; i+=ratio) {
+  for (int i = 0; i <= size.x; i += ratio) {
     draw_list->AddLine(ImVec2(i, 0), ImVec2(i, size.y),
                        IM_COL32(255, 255, 255, 100), 1.0f);
   }
 
-  for (int i = 0; i <= size.y; i+=ratio) {
+  for (int i = 0; i <= size.y; i += ratio) {
     draw_list->AddLine(ImVec2(0, i), ImVec2(size.x, i),
                        IM_COL32(255, 255, 255, 100), 1.0f);
   }

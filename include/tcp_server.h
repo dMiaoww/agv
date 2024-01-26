@@ -31,15 +31,17 @@ private:
   int m_agv_id;
   std::thread m_t;
   bool isconnect = false;
+  std::function<void()> m_cb_func;
 
 public:
   Client(){}
   
-  Client(int fd, int agv){
+  Client(int fd, int agv, std::function<void()> func){
     m_fd = fd;
     m_agv_id = agv;
     isconnect = true;
-    m_t = std::thread([=](){func();});
+    m_t = std::thread([=](){recv_thread();});
+    m_cb_func = func;
   }
 
   Client(Client &&in) {
@@ -83,7 +85,7 @@ private:
     return value;
   }
 
-  void func() {
+  void recv_thread() {
     // 接收消息
 		char buf[1024];
     static auto last_time = getMsTimeStamp();
@@ -127,7 +129,7 @@ private:
         case MSG_AGV::_agvTaskResultHeadEnum: {
           MSG_AGV::AgvTaskResult *agv = (MSG_AGV::AgvTaskResult *) buf;
           if(agv->m_result == MSG_AGV::AgvTaskResult::TaskResultSuccess) {
-            Global::set_agv_job_state(m_agv_id, JOBSTATE::pre_working);
+            Global::set_agv_job_state(m_agv_id, JOBSTATE::running);
             LOG(INFO) << m_agv_id << " receive task";  
           } else {
             LOG(INFO) << m_agv_id << " refuse task: " << (int)agv->m_result;  
@@ -143,6 +145,10 @@ private:
             LOG(INFO) << m_agv_id << " set mode failed"; 
           }
           break;
+        }
+        case MSG_AGV::_agvFollowTaskInterrupt: {
+          LOG(INFO) << m_agv_id << " FollowTaskInterrupt"; 
+          m_cb_func();
         }
       } 
     }
@@ -196,7 +202,7 @@ public:
           close(clientfd);
           LOG(INFO) << "already, reject connect. " << iter->second->connected() << " agv: " << static_cast<void*>(iter->second.get());
         } else {
-          auto ptr = std::make_shared<Client>(clientfd, agvid);
+          auto ptr = std::make_shared<Client>(clientfd, agvid, m_func);
           clients_.insert(std::make_pair(agvid, ptr));
           LOG(INFO) << "save client, fd: " << clientfd << " agv: " << agvid;
         }
@@ -204,7 +210,9 @@ public:
     });
   }
 
-
+  void setCb_interrupt(std::function<void()> func){
+    m_func = func;
+  }
 
 	// 根据车号发送消息
 	void send(int agvid, char *data, int length) {
@@ -230,4 +238,6 @@ private:
   std::mutex mutex_;     // clients列表的锁
 
 	std::thread t_listen;
+
+  std::function<void()> m_func;
 };

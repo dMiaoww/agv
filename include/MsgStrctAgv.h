@@ -76,7 +76,9 @@ namespace MSG_AGV
         _agvSetModeResultHeadEnum = 0xBA,
         _identifiedHeadEnum = 0xD2,              // 回复AGV的身份
         _deployRequestMsgHeadEnum = 0xC0,        // deploy询问身份
-        _agvFinishReadLocalConfigHeadEnum = 0xBB
+        _agvFinishReadLocalConfigHeadEnum = 0xBB,
+
+        _agvFollowTaskInterrupt = 0xBC,
     };
 
     //agv状态信息，任务无关
@@ -908,6 +910,18 @@ namespace MSG_AGV
 		AgvFinishReadLocalConfig(  AgvFinishReadLocalConfig* ptr) : BaseData((BaseData*)ptr) , m_agvID(ptr->m_agvID) { }
 		AgvFinishReadLocalConfig(  AgvFinishReadLocalConfig& ptr) : BaseData((BaseData&)ptr), m_agvID(ptr.m_agvID) { }
 	};
+
+    struct AgvFollowTaskInterrupt : public BaseData{
+        int m_agvID;
+        int m_jobID;
+        AgvFollowTaskInterrupt():m_agvID(0), m_jobID(0) {
+            m_head = _agvFollowTaskInterrupt;
+            int s = sizeof(AgvFinishReadLocalConfig);
+			memcpy(m_dataLength, &s, TCP_DATA_LENGTH_SIZE_AGV);
+        }
+        AgvFollowTaskInterrupt(  AgvFollowTaskInterrupt* ptr) : BaseData((BaseData*)ptr) , m_agvID(ptr->m_agvID), m_jobID(ptr->m_jobID) { }
+		AgvFollowTaskInterrupt(  AgvFollowTaskInterrupt& ptr) : BaseData((BaseData&)ptr), m_agvID(ptr.m_agvID), m_jobID(ptr.m_jobID) { }
+    };
 } // end namespace MSG_AGV
 
 #ifdef __cplusplus

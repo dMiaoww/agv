@@ -42,9 +42,5 @@ add_library(imgui ${IMGUI_SOURCES})
 add_subdirectory(src)
 
 
-add_executable(main1 main1.cpp)
-target_link_libraries(main1 glog pthread src imgui OpenGL::GL glfw dl)
-
-
 add_executable(real real.cpp)
 target_link_libraries(real glog pthread src imgui OpenGL::GL glfw dl)
