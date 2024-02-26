@@ -13,6 +13,7 @@ namespace motionplanner {
   Eigen::MatrixXd Q, R;
   Q.setIdentity(3,3);
   R.setIdentity(3,3);
+  Q(2,2) = 0.1;
 
   Eigen::MatrixXd A, B, K;
   GetJacobi(status, param, A, B);

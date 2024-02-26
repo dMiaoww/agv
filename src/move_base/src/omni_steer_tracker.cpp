@@ -162,12 +162,36 @@ MoveCmd OmniSteerTracker::GetCmd(const std::vector<Pose> &traj,
 
   status.curr_pose = robot;
   status.target_pose = traj[0];
-  status.target_vx = v_max;
-  status.target_vy = 0;
+
   // 参考角速度应该用参考轨迹变化量，与真实位置无关，避免了控制时朝向摆动的问题
+  Pose pp;
+  double deltaX = traj[1].x - traj[0].x;
+  double deltaY = traj[1].y - traj[0].y;
+  double theta = traj[0].theta;
+  // 使用旋转矩阵进行坐标转换
+  double Bx = deltaX * cos(theta) + deltaY * sin(theta);
+  double By = -deltaX * sin(theta) + deltaY * cos(theta);
+  // 角度差值
+  double Btheta = traj[1].theta - traj[0].theta;
+  double vx = Bx / dt_;
+  double vy = By / dt_;
+  double current_norm = std::hypot(vx, vy);
+  if (std::abs(current_norm) <
+      1e-10) { // 这里1e-10是一个阈值，你需要根据实际上下文来选择合适的阈值
+    vx = 0;
+    vy = 0;
+  } else {
+    double scale = v_max / current_norm;
+    vx = vx * scale;
+    vy = vy * scale;
+  }
+  status.target_vx = vx;
+  status.target_vy = vy;
   double dis = getDistance(traj[0], traj[1]) + 1e-6;
-  status.target_vyaw = shortest_angular_distance(traj[0].theta, traj[1].theta) /
-                       dis * v_max;
+  status.target_vyaw =
+      shortest_angular_distance(traj[0].theta, traj[1].theta) / dis * v_max;
+  LOG(INFO) << "[lqr target] vx:" << status.target_vx
+            << " vy:" << status.target_vy << " w:" << status.target_vyaw;
 
   status.curr_vx = last.vx; // v 为上一时刻的控制速度
   status.curr_vy = last.vy;
@@ -178,15 +202,16 @@ MoveCmd OmniSteerTracker::GetCmd(const std::vector<Pose> &traj,
 
   LqrNSteer lqr_nsteer;
   cmd = lqr_nsteer.UpdateControl(status, lqr_param_);
+  // LOG(INFO) << "[lqr] vx:" << cmd.vx << " vy:" << cmd.vy << " w:" << cmd.w;
 
-  cmd.vx = std::max({0.0, last.vx - acc_ * dt_, cmd.vx});
+  cmd.vx = std::max({-max_v_, last.vx - acc_ * dt_, cmd.vx});
   cmd.vx = std::min({max_v_, last.vx + acc_ * dt_, cmd.vx});
-  cmd.vy = std::max({0.0, last.vy - acc_ * dt_, cmd.vy});
+  cmd.vy = std::max({-max_v_, last.vy - acc_ * dt_, cmd.vy});
   cmd.vy = std::min({max_v_, last.vy + acc_ * dt_, cmd.vy});
   cmd.w = std::max({-max_w, last.w - alpha * dt_, cmd.w});
   cmd.w = std::min({max_w, last.w + alpha * dt_, cmd.w});
-
   LOG(INFO) << "[lqr] vx:" << cmd.vx << " vy:" << cmd.vy << " w:" << cmd.w;
+
   return cmd;
 }
 
@@ -232,7 +257,7 @@ Tracker::State OmniSteerTracker::Track(const std::vector<Pose> &traj,
 
     if (shortest_angular_distance(robot.theta, traj[0].theta) > 0.1) {
       state_ = RobotState::rotate1;
-    }else{
+    } else {
       state_ = RobotState::move;
     }
   }
@@ -324,7 +349,7 @@ Tracker::State OmniSteerTracker::Track(const std::vector<Pose> &traj,
         if (s > 0.5 * v0 * v0 / acc_ + 0.5)
           break;
       }
-      
+
       // double v_curv = 0.15 * pow(cmax, -0.7);
 
       double pre = 0;
@@ -373,7 +398,8 @@ Tracker::State OmniSteerTracker::Track(const std::vector<Pose> &traj,
       m_otg.qk.v = v0;
       m_otg.runCycleS1(3000 * dt_, m_otg_lim, target);
 
-      // LOG(INFO) << "dis_to_end: " << dis_to_end << " lim_v: " << m_otg_lim.vMax
+      // LOG(INFO) << "dis_to_end: " << dis_to_end << " lim_v: " <<
+      // m_otg_lim.vMax
       //           << " v: " << m_otg.qk.v << " a: " << (m_otg.qk.v - v0) / dt_;
 
       now_cmd = GetCmd(traj_ref, m_otg.qk.v, robot, last_cmd);
@@ -383,11 +409,10 @@ Tracker::State OmniSteerTracker::Track(const std::vector<Pose> &traj,
       cmd2 = cmd1;
       cmd1 = last_cmd;
 
-      LOG(INFO) << "next_i:" << next_index
-                << ", traj:" << traj.at(next_index).x << " "
-                << traj.at(next_index).y << " " << traj.at(next_index).theta
-                << " robot:" << robot.x << " " << robot.y << " "
-                << robot.theta << ",end_i:" << end_i
+      LOG(INFO) << "next_i:" << next_index << ", traj:" << traj.at(next_index).x
+                << " " << traj.at(next_index).y << " "
+                << traj.at(next_index).theta << " robot:" << robot.x << " "
+                << robot.y << " " << robot.theta << ",end_i:" << end_i
                 << ",vx_xy_w:" << now_cmd.vx << " " << now_cmd.vy << " "
                 << now_cmd.w;
       return Tracker::State::kTracking;

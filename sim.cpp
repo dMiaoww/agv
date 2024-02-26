@@ -2,11 +2,13 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "sim_omni.h"
+#include "sim/car_omni.h"
+#include "sim/car_omni4.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <ratio>
 #include <thread>
 #include <vector>
 // #include "move_base/common.h"
@@ -21,12 +23,12 @@ int window_ox = -5;
 int window_oy = -15;
 const int ratio = 50;
 
-Pose start(0, -7, 0);
+Pose start(0, -5, M_PI / 2);
 // int index = 0;
-auto traj = BezierCurve::get(1000, Pose(0, -7, 0), Pose(2, -7, 0),
-                             Pose(4, -8, 0), Pose(6, -9, 0));
+auto traj = BezierCurve::get(1000, Pose(0, -5, 0), Pose(2, -5, 0),
+                             Pose(4, -7, 0), Pose(6, -7, 0), M_PI / 2);
 motionplanner::Tracker *tracker_;
-SimOmni *agv;
+CarOmni4 *agv;
 
 void DrawTraj(ImDrawList *draw_list, std::vector<Pose> &traj) {
   // 获取当前窗口的位置和大小
@@ -75,8 +77,8 @@ void DrawCar(ImDrawList *draw_list, Pose robot) {
 
   draw_list->PushClipRectFullScreen();
   draw_list->AddQuadFilled(rect[0], rect[1], rect[2], rect[3],
-                           IM_COL32(255, 255, 0, 255));
-  draw_list->AddCircle(center, 2, IM_COL32(0, 0, 255, 255));
+                           IM_COL32(139, 105, 20, 255));
+  draw_list->AddCircleFilled(center, 3, IM_COL32(0, 0, 255, 255));
   draw_list->PopClipRect();
 }
 
@@ -85,10 +87,10 @@ int main(int argc, char **argv) {
 
   tracker_ = new motionplanner::OmniSteerTracker();
   tracker_->Init();
-  tracker_->SetMotionParam(20, 3, 1, 0, 0.6, 0, 0.3, 0.5, 0.5, 0.02, 0.03);
+  tracker_->SetMotionParam(20, 3, 1.0, 0, 0.6, 0.02, 0.3, 0.5, 0.5, 0.02, 0.03);
   tracker_->SetAlgoParam();
 
-  agv = new SimOmni(start);
+  agv = new CarOmni4(start);
 
   std::vector<double> traj_s;
   traj_s.push_back(0);
@@ -124,7 +126,11 @@ int main(int argc, char **argv) {
 
   std::chrono::high_resolution_clock::time_point t1 =
       std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point t2;
   auto state = motionplanner::Tracker::State::kTracking;
+  bool is_begin = true;
+  std::chrono::high_resolution_clock::time_point begin_t1 =
+      std::chrono::high_resolution_clock::now();
   while (!glfwWindowShouldClose(window)) {
     // 清除前一帧的输入数据
     glfwPollEvents();
@@ -136,26 +142,35 @@ int main(int argc, char **argv) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     if (ImGui::Begin("My window")) {
-      std::chrono::high_resolution_clock::time_point t2 =
-          std::chrono::high_resolution_clock::now();
-      std::chrono::duration<double, std::milli> time_span = t2 - t1;
-      // 虚拟大车
-      ImGui::Text(agv->getState().c_str());
-      ImGui::Text("%lf", time_span.count() / 1000.0);
       // 绘制路径
-
+      ImGui::Text(agv->getState().c_str());
       if (state == motionplanner::Tracker::State::kTracking) {
+        t2 = std::chrono::high_resolution_clock::now();
+        // 虚拟大车
         motionplanner::MoveCmd now_cmd;
         Pose robot = agv->getPose();
-        state = tracker_->Track(traj, 0.1, traj_s, next_i, traj.size(), robot,
+        state = tracker_->Track(traj, 1.0, traj_s, next_i, traj.size(), robot,
                                 last_cmd, now_cmd, &next_i);
         Pose cmd;
         cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
-        agv->SetSpeed(cmd);
+        if (is_begin) {
+          std::chrono::high_resolution_clock::time_point begin_t2 =
+              std::chrono::high_resolution_clock::now();
+          std::chrono::duration<double, std::milli> bbb = begin_t2 - begin_t1;
+          now_cmd = motionplanner::MoveCmd(0,0,0);
+          if (bbb.count() / 1000.0 > 3.0) {
+            is_begin = false;
+          }
+        }
+        agv->SetSpeed(cmd, is_begin);
         last_cmd = now_cmd;
       } else {
-        agv->SetSpeed(Pose(0, 0, 0));
+        agv->SetSpeed(Pose(0, 0, 0), false);
+        last_cmd = motionplanner::MoveCmd(0, 0, 0);
       }
+      std::chrono::duration<double, std::milli> time_span = t2 - t1;
+      ImGui::Text("time: %lf, length: %lf", time_span.count() / 1000.0,
+                  traj_s[next_i]);
 
       // ImVec2 p1, p2;
       // p1.x = window_pos.x + (robot.x - window_ox) * ratio;
