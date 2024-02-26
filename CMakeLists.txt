@@ -44,3 +44,7 @@ add_subdirectory(src)
 
 add_executable(real real.cpp)
 target_link_libraries(real glog pthread src imgui OpenGL::GL glfw dl)
+
+
+add_executable(sim sim.cpp)
+target_link_libraries(sim glog pthread src imgui OpenGL::GL glfw dl move_base)
