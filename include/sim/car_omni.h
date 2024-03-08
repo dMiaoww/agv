@@ -23,8 +23,8 @@ public:
     m_set_vel = Pose(0, 0, 0);
     m_L = L;
     m_D = D;
-    m_s_left = std::make_shared<SteerOrigin>();
-    m_s_right = std::make_shared<SteerOrigin>();
+    m_s_left = std::make_shared<SteerOrigin>("1");
+    m_s_right = std::make_shared<SteerOrigin>("2");
 
     run_ = std::thread(std::bind(&CarOmni::updateCAR, this));
   }

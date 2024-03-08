@@ -52,6 +52,7 @@ public:
     cmd1 = MoveCmd(0, 0, 0);
     cmd2 = MoveCmd(0, 0, 0);
     m_begin = 0;
+    v = 0;
   }
 
 private:
@@ -82,6 +83,7 @@ private:
   RobotState state_;
   size_t m_begin;
   OtgFilter m_otg;
+  double v;
 
   MoveCmd cmd1;
   MoveCmd cmd2;

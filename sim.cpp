@@ -25,8 +25,11 @@ const int ratio = 50;
 
 Pose start(0, -5, M_PI / 2);
 // int index = 0;
-auto traj = BezierCurve::get(1000, Pose(0, -5, 0), Pose(2, -5, 0),
-                             Pose(4, -7, 0), Pose(6, -7, 0), M_PI / 2);
+Pose p1 = Pose(0, -5, 0);
+Pose p2 = Pose(2, -5, 0);
+Pose p3 = Pose(4, -7, 0);
+Pose p4 = Pose(6, -7, 0);
+auto traj = BezierCurve::get(1000, p1, p2, p3, p4, M_PI / 2);
 motionplanner::Tracker *tracker_;
 CarOmni4 *agv;
 
@@ -153,16 +156,9 @@ int main(int argc, char **argv) {
                                 last_cmd, now_cmd, &next_i);
         Pose cmd;
         cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
-        if (is_begin) {
-          std::chrono::high_resolution_clock::time_point begin_t2 =
-              std::chrono::high_resolution_clock::now();
-          std::chrono::duration<double, std::milli> bbb = begin_t2 - begin_t1;
-          now_cmd = motionplanner::MoveCmd(0,0,0);
-          if (bbb.count() / 1000.0 > 3.0) {
-            is_begin = false;
-          }
-        }
-        agv->SetSpeed(cmd, is_begin);
+
+        agv->SetSpeed(cmd, is_begin); // 如果为true，会直到舵轮角度到位才返回
+        is_begin = false;
         last_cmd = now_cmd;
       } else {
         agv->SetSpeed(Pose(0, 0, 0), false);

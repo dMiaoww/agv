@@ -1,30 +1,36 @@
 #pragma once
 #include "common_data.h"
+#include "position_pid.h"
 #include "steer.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <fstream>
+#include <glog/logging.h>
 #include <iomanip>
 #include <math.h>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <thread>
 
-class SteerOrigin : public Steer{
+class SteerDDSU : public Steer {
 public:
-  SteerOrigin() : Steer(){
+  SteerDDSU(std::string name) : Steer() {
     m_set_angle = 0;
     m_set_vd = 0;
-    run_ = std::thread(std::bind(&SteerOrigin::update, this));
+    ptr_pid = std::make_shared<PositionPID>(25, 0, 0, update_time);
+    run_ = std::thread(std::bind(&SteerDDSU::update, this));
+    name_ = name;
   }
-  SteerOrigin(double a, double v) : Steer(a, v) {
+  SteerDDSU(double a, double v) : Steer(a, v) {
     m_set_angle = 0;
     m_set_vd = 0;
-    run_ = std::thread(std::bind(&SteerOrigin::update, this));
+    run_ = std::thread(std::bind(&SteerDDSU::update, this));
   }
 
-  virtual ~SteerOrigin(){};
+  virtual ~SteerDDSU(){};
 
   virtual void SetSpeed(double a, double v) {
     if (a > m_max_angle)
@@ -35,30 +41,56 @@ public:
     m_set_vd = v;
   }
 
+  virtual bool AngleReach() {
+    if (fabs(m_set_angle - real_angle) < 0.01) {
+      LOG(INFO) << m_set_angle << " " << real_angle;
+      return true;
+    } else
+      return false;
+  }
+
 private:
   virtual void update() {
+    std::ofstream file;
+    file.open("DDSU" + name_);
     while (true) {
-      if (m_set_angle > real_angle)
-        real_angle =
-            std::min(m_set_angle, real_angle + m_max_angle_vel / 100.0);
-      else
-        real_angle =
-            std::max(m_set_angle, real_angle - m_max_angle_vel / 100.0);
-      if (m_set_vd > real_vd)
-        real_vd = std::min(m_set_vd, real_vd + m_max_a / 100.0);
-      else
-        real_vd = std::max(m_set_vd, real_vd - m_max_a / 100.0);
+      // 先根据设定值计算两个轮子的速度，
+      updateVel();
+      // 在根据轮子速度更新角度
+      updateTheta();
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(int(1000 * update_time)));
+      file << m_set_angle << " " << m_set_vd << " " << real_angle << " "
+           << real_vd << "\n";
     }
+    file.close();
+  }
+
+  void updateVel() {
+    double u = ptr_pid->getOutput(m_set_angle, real_angle);
+    m_vl = m_set_vd - u * update_time;
+    m_vr = m_set_vd + u * 0.01;
+  }
+
+  void updateTheta() {
+    real_vd = m_set_vd;
+    real_angle += (m_vr - m_vl) / b * update_time;
   }
 
 private:
   double m_set_vd;
   double m_set_angle;
   std::thread run_;
+  std::string name_;
 
-  double m_max_angle_vel = 0.1 * 2 * M_PI; // 弧度每秒
-  double m_max_angle = M_PI / 2;
+  // double m_max_angle_vel = 0.1 * 2 * M_PI; // 弧度每秒
+  double m_max_angle = 140.0/180.0*M_PI;;
   double m_max_a = 1; // 加速度 1m / s
+  double m_vl = 0;    // 左轮速度
+  double m_vr = 0;    // 右轮速度
+  double update_time = 0.01;
+  double b = 0.125; // DDSU 中轮子到中点的距离
+
+  std::shared_ptr<PositionPID> ptr_pid;
 };

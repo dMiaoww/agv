@@ -191,7 +191,7 @@ MoveCmd OmniSteerTracker::GetCmd(const std::vector<Pose> &traj,
   status.target_vyaw =
       shortest_angular_distance(traj[0].theta, traj[1].theta) / dis * v_max;
   LOG(INFO) << "[lqr target] vx:" << status.target_vx
-            << " vy:" << status.target_vy << " w:" << status.target_vyaw;
+            << " vy:" << status.target_vy << " w:" << status.target_vyaw << "v:" << v_max;
 
   status.curr_vx = last.vx; // v 为上一时刻的控制速度
   status.curr_vy = last.vy;
@@ -227,6 +227,7 @@ Tracker::State OmniSteerTracker::Track(const std::vector<Pose> &traj,
                                        size_t begin_i, size_t end_i,
                                        Pose &robot, const MoveCmd &last_cmd,
                                        MoveCmd &now_cmd, size_t *n_idx) {
+
   // 新路径
   if (*n_idx == 0 || *n_idx >= end_i)
     Init();
@@ -395,13 +396,12 @@ Tracker::State OmniSteerTracker::Track(const std::vector<Pose> &traj,
       m_otg_lim.vMax = v_ref;
       OtgFilter::VelParam target = {dis_to_end, 0, 0, 0};
       m_otg.qk.d = 0;
-      m_otg.qk.v = v0;
+      // m_otg.qk.v = v0;
       m_otg.runCycleS1(3000 * dt_, m_otg_lim, target);
 
       // LOG(INFO) << "dis_to_end: " << dis_to_end << " lim_v: " <<
       // m_otg_lim.vMax
       //           << " v: " << m_otg.qk.v << " a: " << (m_otg.qk.v - v0) / dt_;
-
       now_cmd = GetCmd(traj_ref, m_otg.qk.v, robot, last_cmd);
       *n_idx = min_id;
       m_begin = min_id;

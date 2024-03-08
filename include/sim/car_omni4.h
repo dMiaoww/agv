@@ -1,11 +1,13 @@
 #pragma once
 #include "common_data.h"
 #include "steer.h"
+#include "steer_ddsu.h"
 #include "steer_origin.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <glog/logging.h>
 #include <iomanip>
 #include <math.h>
 #include <memory>
@@ -25,7 +27,8 @@ public:
     m_L = L;
     m_D = D;
     for (int i = 0; i < 4; i++) {
-      steers.push_back(std::make_shared<SteerOrigin>());
+      // steers.push_back(std::make_shared<SteerOrigin>(std::to_string(i)));
+      steers.push_back(std::make_shared<SteerDDSU>(std::to_string(i)));
     }
     vector_D.push_back(m_D), vector_D.push_back(m_D), vector_D.push_back(-m_D),
         vector_D.push_back(-m_D);
@@ -40,6 +43,21 @@ public:
   void SetSpeed(const Pose &cmd, bool flag = false) {
     m_set_vel = cmd;
     m_flag = flag;
+    if (flag) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(
+          1000)); // 必须先等待一段时间，让更新线程将参数传递给电机
+      
+      while (true) {
+        bool is_reach = true;
+        for (int i = 0; i < steers.size(); i++) {
+          is_reach &= steers[i]->AngleReach();
+        }
+        if (is_reach)
+          break;
+        // LOG(INFO) << m_real_vel << " " << m_set_vel;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    }
   }
 
   Pose getPose() { return m_pos; }
@@ -68,17 +86,17 @@ private:
       double a = atan2(cmd.y + cmd.theta * vector_L[i],
                        cmd.x + cmd.theta * vector_D[i]);
       double v = (cmd.x + cmd.theta * vector_D[i]) / cos(a);
-      if (a > M_PI / 2) {
+      if (a > 140.0/180.0*M_PI) {
         a -= M_PI;
         v *= -1;
-      } else if (a < -M_PI / 2) {
+      } else if (a < -140.0/180.0*M_PI) {
         a += M_PI;
         v *= -1;
       }
       if (m_flag)
         v = 0;
       steers[i]->SetSpeed(a, v);
-      // LOG(INFO) << a << " " <<  v;
+      // LOG(INFO) << a << " " << v;
     }
     return;
   }

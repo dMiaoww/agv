@@ -22,6 +22,8 @@ public:
 
   virtual void SetSpeed(double a, double v) = 0;
 
+  virtual bool AngleReach() = 0;
+
 private:
   virtual void update() = 0;
 };
