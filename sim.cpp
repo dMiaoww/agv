@@ -50,10 +50,11 @@ void DrawTraj(ImDrawList *draw_list, std::vector<Pose> &traj) {
   }
 }
 
-void DrawCar(ImDrawList *draw_list, Pose robot) {
+void DrawCar(ImDrawList *draw_list, Pose robot, double w, double h,
+             ImU32 col = IM_COL32(139, 105, 20, 122), bool centerFlag = true) {
   ImVec2 window_pos = ImGui::GetWindowPos();
   ImVec2 window_size = ImGui::GetWindowSize();
-  float rect_w = 1 * ratio, rect_h = 0.6 * ratio; // 矩形的宽度和高度
+  float rect_w = w * ratio, rect_h = h * ratio; // 矩形的宽度和高度
   // 方块的位置
   float x = window_pos.x + (robot.x - window_ox) * ratio;
   float y = window_pos.y + window_size.y - (robot.y - window_oy) * ratio;
@@ -63,7 +64,7 @@ void DrawCar(ImDrawList *draw_list, Pose robot) {
   ImVec2 center;
   center.x = x;
   center.y = y;
-  // 计算矩形的四个顶点
+  // 计算车矩形的四个顶点
   ImVec2 rect[4];
   rect[0] =
       ImVec2(x + rect_w / 2.0f * cos(radian) - rect_h / 2.0f * sin(radian),
@@ -79,9 +80,10 @@ void DrawCar(ImDrawList *draw_list, Pose robot) {
              y + rect_w / 2.0f * sin(radian) - rect_h / 2.0f * cos(radian));
 
   draw_list->PushClipRectFullScreen();
-  draw_list->AddQuadFilled(rect[0], rect[1], rect[2], rect[3],
-                           IM_COL32(139, 105, 20, 255));
-  draw_list->AddCircleFilled(center, 3, IM_COL32(0, 0, 255, 255));
+  draw_list->AddQuadFilled(rect[0], rect[1], rect[2], rect[3], col);
+  if (centerFlag) {
+    draw_list->AddCircleFilled(center, 3, IM_COL32(255, 0, 0, 255));
+  }
   draw_list->PopClipRect();
 }
 
@@ -179,7 +181,13 @@ int main(int argc, char **argv) {
       // draw_list->AddLine(p1, p2, IM_COL32(255, 255, 0, 255), 2.0f);
 
       // 画车
-      DrawCar(ImGui::GetWindowDrawList(), agv->getPose());
+      DrawCar(ImGui::GetWindowDrawList(), agv->getPose(), 1, 0.6);
+      std::vector<Pose> steerPose;
+      agv->getSteerPose(steerPose);
+      for (int i = 0; i < steerPose.size(); ++i) {
+        DrawCar(ImGui::GetWindowDrawList(), steerPose[i], 0.2, 0.1,
+                IM_COL32(0, 255, 0, 255), false);
+      }
       DrawTraj(ImGui::GetWindowDrawList(), traj);
 
       // 绘制坐标系(grid)

@@ -1,6 +1,7 @@
 #pragma once
 #include "common_data.h"
-#include "steer.h"
+#include "transform.h"
+ #include "steer.h"
 #include "steer_ddsu.h"
 #include "steer_origin.h"
 #include <algorithm>
@@ -20,6 +21,7 @@ class CarOmni4 {
   using SteerPtr = std::shared_ptr<Steer>;
 
 public:
+  // L: 沿着车体x轴到中心的距离。D：沿着车体Y轴到中心的距离
   CarOmni4(Pose r, double L = 0.3, double D = 0.3) {
     m_pos = r;
     m_real_vel = Pose(0, 0, 0);
@@ -30,7 +32,7 @@ public:
       // steers.push_back(std::make_shared<SteerOrigin>(std::to_string(i)));
       steers.push_back(std::make_shared<SteerDDSU>(std::to_string(i)));
     }
-    vector_D.push_back(m_D), vector_D.push_back(m_D), vector_D.push_back(-m_D),
+    vector_D.push_back(m_D), vector_D.push_back(m_D), vector_D.push_back(-m_D), 
         vector_D.push_back(-m_D);
 
     vector_L.push_back(m_L), vector_L.push_back(-m_L), vector_L.push_back(-m_L),
@@ -61,6 +63,18 @@ public:
   }
 
   Pose getPose() { return m_pos; }
+
+  void getSteerPose(std::vector<Pose>& steerPose) {
+    steerPose.clear();
+    // 根据L和D和车体坐标计算舵轮位置
+    for(int i = 0; i < steers.size(); i++){
+      Pose p;
+      p.x = vector_D[i];
+      p.y = vector_L[i];
+      p.theta = steers[i]->real_angle;
+      steerPose.push_back(Transform2World(m_pos, p));
+    }
+  }
 
   std::string getState() {
     std::stringstream ss;
