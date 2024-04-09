@@ -2,12 +2,12 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "sim/car_omni.h"
-#include "sim/car_omni4.h"
+#include "sim/car_single_steer.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <glog/logging.h>
 #include <ratio>
 #include <thread>
 #include <vector>
@@ -16,22 +16,25 @@
 #include "glog_set.h"
 #include "move_base/common.h"
 #include "move_base/omni_steer_tracker.h"
+#include "move_base/pf3_tracker.h"
 
 // using namespace motionplanner;
 
 int window_ox = -5;
 int window_oy = -15;
 const int ratio = 50;
+bool is_backward = false;
 
-Pose start(0, -5, M_PI / 2);
+Pose start(0, -5, 0);
 // int index = 0;
 Pose p1 = Pose(0, -5, 0);
 Pose p2 = Pose(2, -5, 0);
 Pose p3 = Pose(4, -7, 0);
 Pose p4 = Pose(6, -7, 0);
-auto traj = BezierCurve::get(1000, p1, p2, p3, p4, M_PI / 2);
+auto traj = BezierCurve::get(1000, p1, p2, p3, p4);
+
 motionplanner::Tracker *tracker_;
-CarOmni4 *agv;
+CarSingleSteer *agv;
 
 void DrawTraj(ImDrawList *draw_list, std::vector<Pose> &traj) {
   // 获取当前窗口的位置和大小
@@ -90,12 +93,23 @@ void DrawCar(ImDrawList *draw_list, Pose robot, double w, double h,
 int main(int argc, char **argv) {
   GLog_set glog_set(argv[0]);
 
-  tracker_ = new motionplanner::OmniSteerTracker();
+  if (is_backward) {
+    for (auto& it : traj) {
+      it.theta += M_PI;
+      if (it.theta > M_PI)
+        it.theta -= 2 * M_PI;
+    }
+    start.theta += M_PI;
+  }
+
+  LOG(INFO) << traj[0].theta;
+
+  tracker_ = new motionplanner::Pf3Tracker();
   tracker_->Init();
   tracker_->SetMotionParam(20, 3, 1.0, 0, 0.6, 0.02, 0.3, 0.5, 0.5, 0.02, 0.03);
   tracker_->SetAlgoParam();
 
-  agv = new CarOmni4(start);
+  agv = new CarSingleSteer(start);
 
   std::vector<double> traj_s;
   traj_s.push_back(0);
@@ -155,7 +169,7 @@ int main(int argc, char **argv) {
         motionplanner::MoveCmd now_cmd;
         Pose robot = agv->getPose();
         state = tracker_->Track(traj, 1.0, traj_s, next_i, traj.size(), robot,
-                                last_cmd, now_cmd, &next_i, false);
+                                last_cmd, now_cmd, &next_i, is_backward);
         Pose cmd;
         cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
 
@@ -181,13 +195,13 @@ int main(int argc, char **argv) {
       // draw_list->AddLine(p1, p2, IM_COL32(255, 255, 0, 255), 2.0f);
 
       // 画车
-      DrawCar(ImGui::GetWindowDrawList(), agv->getPose(), 1, 0.6);
-      std::vector<Pose> steerPose;
+      DrawCar(ImGui::GetWindowDrawList(), agv->getPose(), 2.2, 0.6);
+      Pose steerPose;
       agv->getSteerPose(steerPose);
-      for (int i = 0; i < steerPose.size(); ++i) {
-        DrawCar(ImGui::GetWindowDrawList(), steerPose[i], 0.2, 0.1,
-                IM_COL32(0, 255, 0, 255), false);
-      }
+
+      DrawCar(ImGui::GetWindowDrawList(), steerPose, 0.2, 0.1,
+              IM_COL32(0, 255, 0, 255), false);
+
       DrawTraj(ImGui::GetWindowDrawList(), traj);
 
       // 绘制坐标系(grid)

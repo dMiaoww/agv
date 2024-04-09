@@ -48,3 +48,6 @@ target_link_libraries(real glog pthread src imgui OpenGL::GL glfw dl)
 
 add_executable(sim sim.cpp)
 target_link_libraries(sim glog pthread src imgui OpenGL::GL glfw dl move_base)
+
+add_executable(sim_ss sim_single_steer.cpp)
+target_link_libraries(sim_ss glog pthread src imgui OpenGL::GL glfw dl move_base)

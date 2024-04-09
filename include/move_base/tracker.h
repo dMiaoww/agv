@@ -57,7 +57,7 @@ class Tracker {
 
   virtual State Track(const std::vector<Pose> &traj, const double v_max,
                       const std::vector<double> &traj_s, size_t begin_i,
-                      size_t end_i, Pose& robot, const MoveCmd& last, MoveCmd& now, size_t *next_i);
+                      size_t end_i, Pose& robot, const MoveCmd& last, MoveCmd& now, size_t *next_i, bool is_backward);
 
   // 速度为 0 时将角速度慢慢下降为 0
   virtual State TrackStop(double w0, double *w, double *v);

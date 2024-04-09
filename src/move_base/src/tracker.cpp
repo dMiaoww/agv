@@ -44,7 +44,7 @@ void Tracker::SetMotionParam(double frequency, int p, double max_v,
 
 Tracker::State Tracker::Track(const std::vector<Pose> &traj, const double v_max,
                       const std::vector<double> &traj_s, size_t begin_i,
-                      size_t end_i, Pose& robot, const MoveCmd& last, MoveCmd& now, size_t *next_i) {
+                      size_t end_i, Pose& robot, const MoveCmd& last, MoveCmd& now, size_t *next_i, bool is_backward) {
   // GetIndex(traj, begin_i, end_i, robot, next_i);
   // if (*next_i == end_i) {
   //   *next_i = 0;

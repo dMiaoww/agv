@@ -3,6 +3,7 @@
 add_library(move_base
 src/common.cpp 
 src/omni_steer_tracker.cpp
+src/pf3_tracker.cpp
 src/otg_filter.cpp
 # src/road_map.cpp
 src/tracker.cpp
