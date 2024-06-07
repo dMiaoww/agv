@@ -33,7 +33,7 @@
 #include "MsgStrctAgv.h"
 #include "MsgStrctCC.h"
 #include "Eigen/Core"
-#include "ceres/ceres.h"
+// #include "ceres/ceres.h"
 
 #include <thread>
 #include <chrono>
@@ -1093,10 +1093,7 @@ T NormalizeAngleDifference(T difference) {
   return difference;
 }
 
-template <typename T>
-T atan2(const Eigen::Matrix<T, 2, 1>& vector) {
-  return ceres::atan2(vector.y(), vector.x());
-}
+
 
 } // namespace math
 } // namespace common

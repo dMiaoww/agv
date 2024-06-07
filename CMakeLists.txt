@@ -13,6 +13,7 @@ find_package(Eigen3 REQUIRED)
 include_directories("/usr/include/eigen3")
 
 include_directories(include)
+include_directories(include/track/controller)
 
 # 添加一个变量，保存所有的ImGui源文件
 set(IMGUI_SOURCES 
@@ -43,8 +44,8 @@ add_subdirectory(src)
 
 
 add_executable(real real.cpp)
-target_link_libraries(real glog pthread src imgui OpenGL::GL glfw dl)
+target_link_libraries(real glog pthread src imgui OpenGL::GL glfw dl track)
 
 
 add_executable(sim sim.cpp)
-target_link_libraries(sim glog pthread src imgui OpenGL::GL glfw dl move_base)
+target_link_libraries(sim glog pthread src imgui OpenGL::GL glfw dl track)

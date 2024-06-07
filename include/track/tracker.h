@@ -4,7 +4,7 @@
 #include <Eigen/Eigen>
 #include <vector>
 
-#include "move_base/common.h"
+#include "common.h"
 #include "common_data.h"
 
 namespace motionplanner {

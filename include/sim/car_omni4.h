@@ -29,8 +29,8 @@ public:
     m_L = L;
     m_D = D;
     for (int i = 0; i < 4; i++) {
-      // steers.push_back(std::make_shared<SteerOrigin>(std::to_string(i)));
-      steers.push_back(std::make_shared<SteerDDSU>(std::to_string(i)));
+      steers.push_back(std::make_shared<SteerOrigin>(std::to_string(i)));
+      // steers.push_back(std::make_shared<SteerDDSU>(std::to_string(i)));
     }
     vector_D.push_back(m_D), vector_D.push_back(m_D), vector_D.push_back(-m_D), 
         vector_D.push_back(-m_D);
@@ -60,6 +60,14 @@ public:
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
     }
+  }
+
+  bool isAngleReach() {
+    bool is_reach = true;
+    for (int i = 0; i < steers.size(); i++) {
+      is_reach &= steers[i]->AngleReach();
+    }
+    return is_reach;
   }
 
   Pose getPose() { return m_pos; }

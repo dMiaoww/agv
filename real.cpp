@@ -5,7 +5,7 @@
 #include "common_data.h"
 #include "curve.h"
 #include "global.h"
-#include "lqr_tracker.h"
+#include "track/lqr_tracker.h"
 #include "tcp_server.h"
 
 #include <chrono>

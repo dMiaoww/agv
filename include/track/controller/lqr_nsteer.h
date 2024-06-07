@@ -1,7 +1,7 @@
 #ifndef LQRNSTEER_H
 #define LQRNSTEER_H
 
-#include "move_base/controller/controller.h"
+#include "controller.h"
 
 namespace motionplanner {
 
