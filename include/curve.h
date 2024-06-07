@@ -24,10 +24,14 @@ public:
       Pose curvePoint;
       curvePoint.x = a * p0.x + b * p1.x + c * p2.x + d * p3.x;
       curvePoint.y = a * p0.y + b * p1.y + c * p2.y + d * p3.y;
-      
+
       // Calculate derivative at the point
-      float dx = -3 * pow((1 - t), 2) * p0.x + (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.x + (6 * t * (1 - t) - 3 * t * t) * p2.x + 3 * t * t * p3.x;
-      float dy = -3 * pow((1 - t), 2) * p0.y + (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.y + (6 * t * (1 - t) - 3 * t * t) * p2.y + 3 * t * t * p3.y;
+      float dx = -3 * pow((1 - t), 2) * p0.x +
+                 (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.x +
+                 (6 * t * (1 - t) - 3 * t * t) * p2.x + 3 * t * t * p3.x;
+      float dy = -3 * pow((1 - t), 2) * p0.y +
+                 (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.y +
+                 (6 * t * (1 - t) - 3 * t * t) * p2.y + 3 * t * t * p3.y;
 
       // theta as the direction of the tangent
       curvePoint.theta = atan2(dy, dx);
@@ -37,7 +41,8 @@ public:
     return vec;
   }
 
-    static std::vector<Pose> get(float T, Pose p0, Pose p1, Pose p2, Pose p3, double theta) {
+  static std::vector<Pose> get(float T, Pose p0, Pose p1, Pose p2, Pose p3,
+                               double theta) {
     std::vector<Pose> vec;
 
     for (int i = 0; i <= T; ++i) {
@@ -54,10 +59,14 @@ public:
       Pose curvePoint;
       curvePoint.x = a * p0.x + b * p1.x + c * p2.x + d * p3.x;
       curvePoint.y = a * p0.y + b * p1.y + c * p2.y + d * p3.y;
-      
+
       // Calculate derivative at the point
-      float dx = -3 * pow((1 - t), 2) * p0.x + (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.x + (6 * t * (1 - t) - 3 * t * t) * p2.x + 3 * t * t * p3.x;
-      float dy = -3 * pow((1 - t), 2) * p0.y + (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.y + (6 * t * (1 - t) - 3 * t * t) * p2.y + 3 * t * t * p3.y;
+      float dx = -3 * pow((1 - t), 2) * p0.x +
+                 (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.x +
+                 (6 * t * (1 - t) - 3 * t * t) * p2.x + 3 * t * t * p3.x;
+      float dy = -3 * pow((1 - t), 2) * p0.y +
+                 (3 * pow((1 - t), 2) - 6 * t * (1 - t)) * p1.y +
+                 (6 * t * (1 - t) - 3 * t * t) * p2.y + 3 * t * t * p3.y;
 
       // theta as the direction of the tangent
       curvePoint.theta = theta;
@@ -65,5 +74,24 @@ public:
       vec.push_back(curvePoint);
     }
     return vec;
+  }
+
+  static std::vector<Pose> getStraightLine(double distance, const Pose &start,
+                                           const Pose &end) {
+    std::vector<Pose> res;
+
+    int count = std::hypot(end.x - start.x, end.y - start.y) / distance;
+    double angle = std::atan2(end.y - start.y, end.x - start.x);
+    double dx = distance * std::cos(angle);
+    double dy = distance * std::sin(angle);
+    for (int i = 0; i <= count; i++) {
+      Pose p;
+      p.x = start.x + i * dx;
+      p.y = start.y + i * dy;
+      p.theta = angle;
+      res.emplace_back(p);
+    }
+    res.emplace_back(end);
+    return res;
   }
 };

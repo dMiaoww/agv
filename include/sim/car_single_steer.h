@@ -72,12 +72,12 @@ private:
       m_real_vel = forward_transform(m_s_left, m_s_right);
 
       double dt = 0.03;
-      // std::random_device rd;  // 随机数生成器
-      // std::mt19937 gen(rd()); // 使用 Mersenne Twister 算法生成随机数
-      // std::uniform_real_distribution<> distrib(
-      //     0.0, 1.0); // 定义均匀分布的取值范围，包括0.0，不包括1.0
-      // // 生成一个0到1（不包含1）的随机浮点数
-      // double randomNumber = 0.04 * distrib(gen) - 0.02;
+      std::random_device rd;  // 随机数生成器
+      std::mt19937 gen(rd()); // 使用 Mersenne Twister 算法生成随机数
+      std::uniform_real_distribution<> distrib(
+          0.0, 1.0); // 定义均匀分布的取值范围，包括0.0，不包括1.0
+      // 生成一个0到1（不包含1）的随机浮点数
+      double randomNumber = 0.04 * distrib(gen) - 0.02;
 
       m_pos.x += m_real_vel.x * cos(m_pos.theta) * dt -
                  m_real_vel.y * sin(m_pos.theta) * dt;
