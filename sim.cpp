@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
         motionplanner::MoveCmd now_cmd;
         Pose robot = agv->getPose();
         state = tracker_->Track(traj, 1.0, traj_s, next_i, traj.size(), robot,
-                                last_cmd, now_cmd, &next_i);
+                                last_cmd, now_cmd, &next_i, false);
         Pose cmd;
         cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
 

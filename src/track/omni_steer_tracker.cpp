@@ -226,7 +226,7 @@ Tracker::State OmniSteerTracker::Track(const std::vector<Pose> &traj,
                                        const std::vector<double> &traj_s,
                                        size_t begin_i, size_t end_i,
                                        Pose &robot, const MoveCmd &last_cmd,
-                                       MoveCmd &now_cmd, size_t *n_idx) {
+                                       MoveCmd &now_cmd, size_t *n_idx, bool is_backward) {
 
   // 新路径
   if (*n_idx == 0 || *n_idx >= end_i)
