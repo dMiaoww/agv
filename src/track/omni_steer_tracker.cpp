@@ -22,107 +22,107 @@ OmniSteerTracker::OmniSteerTracker() : Tracker() {
 OmniSteerTracker::~OmniSteerTracker() = default;
 
 // 距离的绝对值
-double OmniSteerTracker::getDistance(const Pose &p1, const Pose &p2) {
-  return std::hypot(p1.x - p2.x, p1.y - p2.y);
-}
+// double OmniSteerTracker::getDistance(const Pose &p1, const Pose &p2) {
+//   return std::hypot(p1.x - p2.x, p1.y - p2.y);
+// }
 
 /** robot  p2     p3:    return < 0
     p2     robot  p3:    return 0~1
     p2     p3     robot: return > 1
 **/
-double OmniSteerTracker::getDot(const Pose &robot, const Pose &p2,
-                                const Pose &p3) {
-  Pose p21{robot.x - p2.x, robot.y - p2.y, 0};
-  Pose p23{p3.x - p2.x, p3.y - p2.y, 0};
+// double OmniSteerTracker::getDot(const Pose &robot, const Pose &p2,
+//                                 const Pose &p3) {
+//   Pose p21{robot.x - p2.x, robot.y - p2.y, 0};
+//   Pose p23{p3.x - p2.x, p3.y - p2.y, 0};
 
-  double dot =
-      (p21.x * p23.x + p21.y * p23.y) / (p23.x * p23.x + p23.y * p23.y + 1e-9);
-  return dot;
-}
+//   double dot =
+//       (p21.x * p23.x + p21.y * p23.y) / (p23.x * p23.x + p23.y * p23.y + 1e-9);
+//   return dot;
+// }
 
-// 找到轨迹上最靠近小车、且小车并未到达的点
-int OmniSteerTracker::getNearestId(const std::vector<Pose> &traj,
-                                   const Pose &robot, int begin_i, int end_i) {
-  double min_dist = 10000;
-  int min_id = begin_i;
-  for (int i = begin_i; i < end_i; i++) {
-    double dd = getDistance(robot, traj.at(i));
-    if (dd <= min_dist + 1e-3) {
-      min_dist = dd;
-      min_id = i;
-    }
-  }
-  // robot已经越过最近点且最近点不是终点
-  if ((min_id + 1) < end_i &&
-      getDot(robot, traj.at(min_id), traj.at(min_id + 1)) > 0) {
-    min_id++;
-  }
-  return min_id;
-}
+// // 找到轨迹上最靠近小车、且小车并未到达的点
+// int OmniSteerTracker::getNearestId(const std::vector<Pose> &traj,
+//                                    const Pose &robot, int begin_i, int end_i) {
+//   double min_dist = 10000;
+//   int min_id = begin_i;
+//   for (int i = begin_i; i < end_i; i++) {
+//     double dd = getDistance(robot, traj.at(i));
+//     if (dd <= min_dist + 1e-3) {
+//       min_dist = dd;
+//       min_id = i;
+//     }
+//   }
+//   // robot已经越过最近点且最近点不是终点
+//   if ((min_id + 1) < end_i &&
+//       getDot(robot, traj.at(min_id), traj.at(min_id + 1)) > 0) {
+//     min_id++;
+//   }
+//   return min_id;
+// }
 
-// 计算 point 到 line 的距离 左正右负
-double OmniSteerTracker::getMinDistanceToLine(const Pose &point,
-                                              const Pose &line) {
-  double x1 = line.x;
-  double y1 = line.y;
-  double x2 = line.x + cos(line.theta);
-  double y2 = line.y + sin(line.theta);
+// // 计算 point 到 line 的距离 左正右负
+// double OmniSteerTracker::getMinDistanceToLine(const Pose &point,
+//                                               const Pose &line) {
+//   double x1 = line.x;
+//   double y1 = line.y;
+//   double x2 = line.x + cos(line.theta);
+//   double y2 = line.y + sin(line.theta);
 
-  return (y1 - y2) * point.x - (x1 - x2) * point.y + (x1 * y2 - x2 * y1);
-}
+//   return (y1 - y2) * point.x - (x1 - x2) * point.y + (x1 * y2 - x2 * y1);
+// }
 
-double OmniSteerTracker::calculateCurvature(const std::vector<Pose> &traj,
-                                            const int &i) {
-  if ((i + 3) > traj.size())
-    return 0;
+// double OmniSteerTracker::calculateCurvature(const std::vector<Pose> &traj,
+//                                             const int &i) {
+//   if ((i + 3) > traj.size())
+//     return 0;
 
-  double curvature = 0.0;
+//   double curvature = 0.0;
 
-  motionplanner::Point A(traj.at(i).x, traj.at(i).y);
-  motionplanner::Point B(traj.at(i + 1).x, traj.at(i + 1).y);
-  motionplanner::Point C(traj.at(i + 2).x, traj.at(i + 2).y);
-  motionplanner::Point D = {(B.x + C.x) / 2, (B.y + C.y) / 2}; // BC的中点
-  motionplanner::Point E = {(A.x + B.x) / 2, (A.y + B.y) / 2}; // AB的中点
+//   motionplanner::Point A(traj.at(i).x, traj.at(i).y);
+//   motionplanner::Point B(traj.at(i + 1).x, traj.at(i + 1).y);
+//   motionplanner::Point C(traj.at(i + 2).x, traj.at(i + 2).y);
+//   motionplanner::Point D = {(B.x + C.x) / 2, (B.y + C.y) / 2}; // BC的中点
+//   motionplanner::Point E = {(A.x + B.x) / 2, (A.y + B.y) / 2}; // AB的中点
 
-  double slope1 = (C.y - B.y) / (C.x - B.x); // BC的斜率
-  double slope2 = (B.y - A.y) / (B.x - A.x); // AB的斜率
+//   double slope1 = (C.y - B.y) / (C.x - B.x); // BC的斜率
+//   double slope2 = (B.y - A.y) / (B.x - A.x); // AB的斜率
 
-  double slope_per1 = -1 / slope1; // BC的垂直线斜率
-  double slope_per2 = -1 / slope2; // AB的垂直线斜率
+//   double slope_per1 = -1 / slope1; // BC的垂直线斜率
+//   double slope_per2 = -1 / slope2; // AB的垂直线斜率
 
-  double x = (slope_per1 * D.x - slope_per2 * E.x + E.y - D.y) /
-             (slope_per1 - slope_per2);    // 圆心的x坐标
-  double y = slope_per1 * (x - D.x) + D.y; // 圆心的y坐标
+//   double x = (slope_per1 * D.x - slope_per2 * E.x + E.y - D.y) /
+//              (slope_per1 - slope_per2);    // 圆心的x坐标
+//   double y = slope_per1 * (x - D.x) + D.y; // 圆心的y坐标
 
-  Point O = {x, y}; // 圆心
+//   Point O = {x, y}; // 圆心
 
-  double radius = std::hypot(O.x - B.x, O.y - B.y); // 半径
+//   double radius = std::hypot(O.x - B.x, O.y - B.y); // 半径
 
-  curvature = 1 / radius; // 曲率
+//   curvature = 1 / radius; // 曲率
 
-  return curvature;
-}
+//   return curvature;
+// }
 
 // [begin_i, end_i) 区间上离小车距离最接近 preview_dist 的点
-int OmniSteerTracker::getNextId(const std::vector<Pose> &traj,
-                                const Pose &robot, int begin_i, int end_i,
-                                double preview_dist) {
-  int next_id = begin_i;
-  double dist = 10000;
+// int OmniSteerTracker::getNextId(const std::vector<Pose> &traj,
+//                                 const Pose &robot, int begin_i, int end_i,
+//                                 double preview_dist) {
+//   int next_id = begin_i;
+//   double dist = 10000;
 
-  for (int i = begin_i; i < end_i; i++) {
-    double now_dist = fabs(getDistance(robot, traj.at(i)) - preview_dist);
-    if (now_dist <= dist + 1e-3) {
-      next_id = i;
-      dist = now_dist;
-    } else {
-      break;
-    }
-  }
-  return next_id; // next_id is always valid
-}
+//   for (int i = begin_i; i < end_i; i++) {
+//     double now_dist = fabs(getDistance(robot, traj.at(i)) - preview_dist);
+//     if (now_dist <= dist + 1e-3) {
+//       next_id = i;
+//       dist = now_dist;
+//     } else {
+//       break;
+//     }
+//   }
+//   return next_id; // next_id is always valid
+// }
 
-int OmniSteerTracker::sgn(double x) { return (x >= 0) ? 1 : -1; }
+// int OmniSteerTracker::sgn(double x) { return (x >= 0) ? 1 : -1; }
 
 Pose OmniSteerTracker::predictPose(const Pose &robot, const MoveCmd &cmd,
                                    double dt) {

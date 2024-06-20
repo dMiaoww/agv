@@ -39,9 +39,9 @@ public:
         const std::vector<double> &traj_s, size_t begin_i, size_t end_i,
         Pose &robot, const MoveCmd &last_cmd, MoveCmd &now_cmd, size_t *n_idx, bool is_backward) override;
 
-  virtual State TrackStop(double w0, double *w, double *v) override {
+  virtual State TrackStop(double &w) override {
     Init();
-    return Tracker::TrackStop(w0, w, v);
+    return Tracker::TrackStop(w);
   }
 
   virtual void Init() override {
@@ -56,25 +56,25 @@ public:
   }
 
 private:
-  // 返回距离的绝对值
-  double getDistance(const Pose &p1, const Pose &p2);
+  // // 返回距离的绝对值
+  // double getDistance(const Pose &p1, const Pose &p2);
 
-  double getDot(const Pose &robot, const Pose &p2, const Pose &p3);
+  // double getDot(const Pose &robot, const Pose &p2, const Pose &p3);
 
-  // 找到轨迹上最靠近小车、且小车并未到达的点
-  int getNearestId(const std::vector<Pose> &traj, const Pose &robot,
-                   int begin_i, int end_i);
+  // // 找到轨迹上最靠近小车、且小车并未到达的点
+  // int getNearestId(const std::vector<Pose> &traj, const Pose &robot,
+  //                  int begin_i, int end_i);
 
-  // 计算 point 到 line 的距离 左正右负
-  double getMinDistanceToLine(const Pose &point, const Pose &line);
+  // // 计算 point 到 line 的距离 左正右负
+  // double getMinDistanceToLine(const Pose &point, const Pose &line);
 
-  double calculateCurvature(const std::vector<Pose> &traj, const int &i);
+  // double calculateCurvature(const std::vector<Pose> &traj, const int &i);
 
-  // [begin_i, end_i) 区间上离小车距离最接近 preview_dist 的点
-  int getNextId(const std::vector<Pose> &traj, const Pose &robot, int begin_i,
-                int end_i, double preview_dist);
+  // // [begin_i, end_i) 区间上离小车距离最接近 preview_dist 的点
+  // int getNextId(const std::vector<Pose> &traj, const Pose &robot, int begin_i,
+  //               int end_i, double preview_dist);
 
-  int sgn(double x);
+  // int sgn(double x);
 
   Pose predictPose(const Pose&robot, const MoveCmd& cmd, double dt);
 

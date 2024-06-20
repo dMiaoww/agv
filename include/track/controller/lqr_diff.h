@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "controller.h"
+#include "../common.h"
 
 namespace motionplanner{
 class LqrDiff 

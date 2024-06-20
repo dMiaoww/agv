@@ -47,8 +47,11 @@ add_executable(real real.cpp)
 target_link_libraries(real glog pthread src imgui OpenGL::GL glfw dl track)
 
 
-add_executable(sim sim.cpp)
-target_link_libraries(sim glog pthread src imgui OpenGL::GL glfw dl track)
+add_executable(sim_omni sim_omni.cpp)
+target_link_libraries(sim_omni glog pthread src imgui OpenGL::GL glfw dl track)
 
 add_executable(sim_ss sim_single_steer.cpp)
 target_link_libraries(sim_ss glog pthread src imgui OpenGL::GL glfw dl track)
+
+add_executable(paint test_paint.cpp)
+target_link_libraries(paint glog pthread src imgui OpenGL::GL glfw dl track)

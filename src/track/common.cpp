@@ -20,7 +20,7 @@ double NormalizeRad(double rad) {
   return diff - M_PI;
 }
 
-double shortest_angular_distance(double from, double to) {
+inline double shortest_angular_distance(double from, double to) {
   double a = normalize_angle_positive(to - from);
   if (a > M_PI) a -= 2.0 * M_PI;
   return a;

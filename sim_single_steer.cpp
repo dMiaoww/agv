@@ -14,30 +14,30 @@
 // #include "move_base/common.h"
 #include "curve.h"
 #include "glog_set.h"
-#include "move_base/common.h"
-#include "move_base/omni_steer_tracker.h"
-#include "move_base/pf3_tracker.h"
+#include "track/common.h"
+#include "track/pf3_tracker.h"
 
 // using namespace motionplanner;
 
-int window_ox = -15;
-int window_oy = -15;
+int window_ox = -5;
+int window_oy = -10;
 const int ratio = 50;
 bool is_backward = false;
+auto state = motionplanner::Tracker::State::kSuccessful;
 
-Pose start(-10.34,-6.17, 0);
+Pose start(0,-4.9, 0);
 // int index = 0;
 Pose p1 = Pose(0, -5, 0);
 Pose p2 = Pose(2, -5, 0);
 Pose p3 = Pose(4, -7, 0);
-Pose p4 = Pose(8, -7, 0);
+Pose p4 = Pose(5, -7, 0);
 // Pose p1 = Pose(0, -5, 0);
 // Pose p2 = Pose(2, -5, 0);
 // Pose p3 = Pose(3, -5, 0);
 // Pose p4 = Pose(4, -5, 0);
-// auto traj = BezierCurve::get(1000, p1, p2, p3, p4);
+auto traj = BezierCurve::get(1000, p1, p2, p3, p4);
 
-auto traj = BezierCurve::getStraightLine(0.05, Pose(-10.3076,-6.0912,-2.82), Pose(-7.31905,-5.09556,-2.82));
+// auto traj = BezierCurve::getStraightLine(0.05, Pose(-10.3076,-6.0912,-2.82), Pose(-7.31905,-5.09556,-2.82));
 
 motionplanner::Tracker *tracker_;
 CarSingleSteer *agv;
@@ -96,6 +96,10 @@ void DrawCar(ImDrawList *draw_list, Pose robot, double w, double h,
   draw_list->PopClipRect();
 }
 
+void ButtonClick() {
+  state = motionplanner::Tracker::State::kTracking;
+}
+
 int main(int argc, char **argv) {
   GLog_set glog_set(argv[0]);
 
@@ -152,7 +156,7 @@ int main(int argc, char **argv) {
   std::chrono::high_resolution_clock::time_point t1 =
       std::chrono::high_resolution_clock::now();
   std::chrono::high_resolution_clock::time_point t2;
-  auto state = motionplanner::Tracker::State::kTracking;
+
   bool is_begin = true;
   std::chrono::high_resolution_clock::time_point begin_t1 =
       std::chrono::high_resolution_clock::now();
@@ -167,6 +171,10 @@ int main(int argc, char **argv) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     if (ImGui::Begin("My window")) {
+      if (ImGui::Button("Start")) {
+        // 按钮被按下时，打印消息
+        ButtonClick();
+      }
       // 绘制路径
       ImGui::Text(agv->getState().c_str());
       if (state == motionplanner::Tracker::State::kTracking) {

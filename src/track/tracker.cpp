@@ -1,6 +1,8 @@
 #include "track/tracker.h"
 
 #include "glog_set.h"
+#include "common_data.h"
+
 
 namespace motionplanner {
 
@@ -44,7 +46,7 @@ void Tracker::SetMotionParam(double frequency, int p, double max_v,
 
 Tracker::State Tracker::Track(const std::vector<Pose> &traj, const double v_max,
                       const std::vector<double> &traj_s, size_t begin_i,
-                      size_t end_i, Pose& robot, const MoveCmd& last, MoveCmd& now, size_t *next_i, bool is_backward) {
+                      size_t end_i, Pose& robot, const MoveCmd& last, MoveCmd& now, size_t *next_i, bool backward) {
   // GetIndex(traj, begin_i, end_i, robot, next_i);
   // if (*next_i == end_i) {
   //   *next_i = 0;
@@ -266,16 +268,139 @@ void Tracker::GetIndex(const std::vector<Pose> &traj, size_t begin_i,
   }
 }
 
-Tracker::State Tracker::TrackStop(double w0, double *w, double *v){
-  double dw = alpha_ * dt_; *v = 0;
-  if (w0 > dw) {
-    *w = w0 - dw;
-  } else if (w0 < -dw) {
-    *w = w0 + dw;
+Tracker::State Tracker::TrackStop(double& w){
+  double dw = alpha_ * dt_;
+  if (w > dw) {
+    w = w - dw;
+  } else if (w < -dw) {
+    w = w + dw;
   } else {
-    *w = 0;
+    w = 0;
   }
   return Tracker::State::kTracking;
 }
+
+// 距离的绝对值
+double Tracker::getDistance(const Pose &p1, const Pose &p2) {
+  return std::hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+/** robot  p2     p3:    return < 0
+    p2     robot  p3:    return 0~1
+    p2     p3     robot: return > 1
+**/
+double Tracker::getDot(const Pose &robot, const Pose &p2, const Pose &p3) {
+  Pose p21{robot.x - p2.x, robot.y - p2.y, 0};
+  Pose p23{p3.x - p2.x, p3.y - p2.y, 0};
+
+  double dot =
+      (p21.x * p23.x + p21.y * p23.y) / (p23.x * p23.x + p23.y * p23.y + 1e-9);
+  return dot;
+}
+
+// 找到轨迹上最靠近小车、且小车并未到达的点
+int Tracker::getNearestId(const std::vector<Pose> &traj, const Pose &robot,
+                             int begin_i, int end_i) {
+  double min_dist = 10000;
+  int min_id = begin_i;
+  for (int i = begin_i; i < end_i; i++) {
+    double dd = getDistance(robot, traj.at(i));
+    if (dd <= min_dist + 1e-3) {
+      min_dist = dd;
+      min_id = i;
+    }
+  }
+  // robot已经越过最近点且最近点不是终点
+  if ((min_id + 1) < end_i &&
+      getDot(robot, traj.at(min_id), traj.at(min_id + 1)) > 0) {
+    min_id++;
+  }
+  return min_id;
+}
+
+// 计算 point 到 line 的距离 左正右负
+double Tracker::getMinDistanceToLine(const Pose &point, const Pose &line) {
+  double x1 = line.x;
+  double y1 = line.y;
+  double x2 = line.x + cos(line.theta);
+  double y2 = line.y + sin(line.theta);
+
+  return (y1 - y2) * point.x - (x1 - x2) * point.y + (x1 * y2 - x2 * y1);
+}
+
+double Tracker::calculateCurvature(const std::vector<Pose> &traj,
+                                      const int &i) {
+  if ((i + 3) > traj.size())
+    return 0;
+
+  // double x1 = traj.at(i).x;
+  // double y1 = traj.at(i).y;
+  // double x2 = traj.at(i+1).x;
+  // double y2 = traj.at(i+1).y;
+  // double x3 = traj.at(i+2).x;
+  // double y3 = traj.at(i+2).y;
+
+  // double x1_prime = (x2 - x1);
+  // double y1_prime = (y2 - y1);
+  // double x2_prime = (x3 - x2);
+  // double y2_prime = (y3 - y2);
+
+  // double numerator = std::abs((x1_prime * y2_prime) - (y1_prime *
+  // x2_prime))+1e-6; double denominator = std::pow((x1_prime * x1_prime +
+  // y1_prime * y1_prime), 1.5);
+
+  // return numerator / (denominator+0.000001);
+
+  double curvature = 0.0;
+
+  motionplanner::Point A(traj.at(i).x, traj.at(i).y);
+  motionplanner::Point B(traj.at(i + 1).x, traj.at(i + 1).y);
+  motionplanner::Point C(traj.at(i + 2).x, traj.at(i + 2).y);
+  motionplanner::Point D = {(B.x + C.x) / 2, (B.y + C.y) / 2}; // BC的中点
+  motionplanner::Point E = {(A.x + B.x) / 2, (A.y + B.y) / 2}; // AB的中点
+
+  double slope1 = (C.y - B.y) / (C.x - B.x); // BC的斜率
+  double slope2 = (B.y - A.y) / (B.x - A.x); // AB的斜率
+
+  double slope_per1 = -1 / slope1; // BC的垂直线斜率
+  double slope_per2 = -1 / slope2; // AB的垂直线斜率
+
+  double x = (slope_per1 * D.x - slope_per2 * E.x + E.y - D.y) /
+             (slope_per1 - slope_per2);    // 圆心的x坐标
+  double y = slope_per1 * (x - D.x) + D.y; // 圆心的y坐标
+
+  Point O = {x, y}; // 圆心
+
+  double radius = std::hypot(O.x - B.x, O.y - B.y); // 半径
+
+  curvature = 1 / radius; // 曲率
+
+  motionplanner::Point v1 = {B.x-A.x, B.y-A.y};
+  motionplanner::Point v2 = {C.x-B.x, C.y-B.y};
+  auto cross = v1.x*v2.y - v1.y*v2.x;
+  if(cross < 0) curvature *= -1;
+
+  return curvature;
+}
+
+// [begin_i, end_i) 区间上离小车距离最接近 preview_dist 的点
+int Tracker::getNextId(const std::vector<Pose> &traj, const Pose &robot,
+                          int begin_i, int end_i, double preview_dist) {
+  int next_id = begin_i;
+  double dist = 10000;
+
+  for (int i = begin_i; i < end_i; i++) {
+    double now_dist = fabs(getDistance(robot, traj.at(i)) - preview_dist);
+    if (now_dist <= dist + 1e-3) {
+      next_id = i;
+      dist = now_dist;
+    } else {
+      break;
+    }
+  }
+  return next_id; // next_id is always valid
+}
+
+int Tracker::sgn(double x) { return (x >= 0) ? 1 : -1; }
 
 }  // namespace motionplanner

@@ -2,46 +2,36 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "sim/car_single_steer.h"
-#include "sim/car_omni4.h"
 #include "sim/car_omni.h"
+#include "sim/car_omni4.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <glog/logging.h>
 #include <ratio>
 #include <thread>
 #include <vector>
 // #include "move_base/common.h"
 #include "curve.h"
 #include "glog_set.h"
-#include "move_base/common.h"
-#include "move_base/omni_steer_tracker.h"
-#include "move_base/pf3_tracker.h"
+#include "track/common.h"
+#include "track/omni_steer_tracker.h"
 
 // using namespace motionplanner;
 
-int window_ox = -15;
+int window_ox = -5;
 int window_oy = -15;
 const int ratio = 50;
-bool is_backward = false;
 
-Pose start(-10.34,-6.17, 0);
+Pose start(0, -5, M_PI/2);
 // int index = 0;
 Pose p1 = Pose(0, -5, 0);
 Pose p2 = Pose(2, -5, 0);
 Pose p3 = Pose(4, -7, 0);
-Pose p4 = Pose(8, -7, 0);
-// Pose p1 = Pose(0, -5, 0);
-// Pose p2 = Pose(2, -5, 0);
-// Pose p3 = Pose(3, -5, 0);
-// Pose p4 = Pose(4, -5, 0);
-// auto traj = BezierCurve::get(1000, p1, p2, p3, p4);
-
-auto traj = BezierCurve::getStraightLine(0.05, Pose(-10.3076,-6.0912,-2.82), Pose(-7.31905,-5.09556,-2.82));
-
+Pose p4 = Pose(6, -7, 0);
+auto traj = BezierCurve::get(1000, p1, p2, p3, p4, M_PI/2);
 motionplanner::Tracker *tracker_;
+auto state = motionplanner::Tracker::State::kSuccessful;
 CarOmni4 *agv;
 
 void DrawTraj(ImDrawList *draw_list, std::vector<Pose> &traj) {
@@ -98,26 +88,19 @@ void DrawCar(ImDrawList *draw_list, Pose robot, double w, double h,
   draw_list->PopClipRect();
 }
 
+void ButtonClick() {
+  state = motionplanner::Tracker::State::kTracking;
+}
+
 int main(int argc, char **argv) {
   GLog_set glog_set(argv[0]);
 
-  if (is_backward) {
-    for (auto& it : traj) {
-      it.theta += M_PI;
-      if (it.theta > M_PI)
-        it.theta -= 2 * M_PI;
-    }
-    // start.theta += M_PI;
-  }
-
-  LOG(INFO) << traj[0].theta;
-
-  tracker_ = new motionplanner::Pf3Tracker();
+  tracker_ = new motionplanner::OmniSteerTracker();
   tracker_->Init();
   tracker_->SetMotionParam(20, 3, 1.0, 0, 0.6, 0.02, 0.3, 0.5, 0.5, 0.02, 0.03);
   tracker_->SetAlgoParam();
 
-  agv = new CarSingleSteer(start);
+  agv = new CarOmni4(start);
 
   std::vector<double> traj_s;
   traj_s.push_back(0);
@@ -154,8 +137,9 @@ int main(int argc, char **argv) {
   std::chrono::high_resolution_clock::time_point t1 =
       std::chrono::high_resolution_clock::now();
   std::chrono::high_resolution_clock::time_point t2;
-  auto state = motionplanner::Tracker::State::kTracking;
+  // auto state = motionplanner::Tracker::State::kTracking;
   bool is_begin = true;
+  bool is_reach = true;
   std::chrono::high_resolution_clock::time_point begin_t1 =
       std::chrono::high_resolution_clock::now();
   while (!glfwWindowShouldClose(window)) {
@@ -169,6 +153,11 @@ int main(int argc, char **argv) {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     if (ImGui::Begin("My window")) {
+      ImGui::SetWindowFontScale(2.0f);
+      if (ImGui::Button("Start")) {
+        // 按钮被按下时，打印消息
+        ButtonClick();
+      }
       // 绘制路径
       ImGui::Text(agv->getState().c_str());
       if (state == motionplanner::Tracker::State::kTracking) {
@@ -177,13 +166,26 @@ int main(int argc, char **argv) {
         motionplanner::MoveCmd now_cmd;
         Pose robot = agv->getPose();
         state = tracker_->Track(traj, 1.0, traj_s, next_i, traj.size(), robot,
-                                last_cmd, now_cmd, &next_i, is_backward);
+                                last_cmd, now_cmd, &next_i, false);
         Pose cmd;
         cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
 
-        agv->SetSpeed(cmd, is_begin); // 如果为true，会直到舵轮角度到位才返回
-        is_begin = false;
-        last_cmd = now_cmd;
+        if(is_begin && is_reach) { // 第一次
+          agv->SetSpeed(cmd, false); // 如果为true，会直到舵轮角度到位才返回
+          last_cmd = now_cmd;
+          is_reach = false;
+          LOG(INFO) << 1;
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }else if(!is_begin) {  // 非第一次
+          agv->SetSpeed(cmd, false); // 如果为true，会直到舵轮角度到位才返回
+          last_cmd = now_cmd;
+          LOG(INFO) << 3;
+        }
+        if(is_begin) {
+          is_reach = agv->isAngleReach();
+          if(is_reach) is_begin = false;
+          LOG(INFO) << 2;
+        }
       } else {
         agv->SetSpeed(Pose(0, 0, 0), false);
         last_cmd = motionplanner::MoveCmd(0, 0, 0);
@@ -203,13 +205,13 @@ int main(int argc, char **argv) {
       // draw_list->AddLine(p1, p2, IM_COL32(255, 255, 0, 255), 2.0f);
 
       // 画车
-      DrawCar(ImGui::GetWindowDrawList(), agv->getPose(), 2.2, 0.6);
-      Pose steerPose;
+      DrawCar(ImGui::GetWindowDrawList(), agv->getPose(), 1, 0.6);
+      std::vector<Pose> steerPose;
       agv->getSteerPose(steerPose);
-
-      DrawCar(ImGui::GetWindowDrawList(), steerPose, 0.2, 0.1,
-              IM_COL32(0, 255, 0, 255), false);
-
+      for (int i = 0; i < steerPose.size(); ++i) {
+        DrawCar(ImGui::GetWindowDrawList(), steerPose[i], 0.2, 0.1,
+                IM_COL32(0, 255, 0, 255), false);
+      }
       DrawTraj(ImGui::GetWindowDrawList(), traj);
 
       // 绘制坐标系(grid)

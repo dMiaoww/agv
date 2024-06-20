@@ -19,8 +19,8 @@
 
 // using namespace motionplanner;
 
-int window_ox = -5;
-int window_oy = -15;
+int window_ox = 0;
+int window_oy = -5;
 const int ratio = 50;
 
 Pose start(0, -5, M_PI/2);
@@ -93,14 +93,9 @@ void ButtonClick() {
 }
 
 int main(int argc, char **argv) {
-  GLog_set glog_set(argv[0]);
+//   GLog_set glog_set(argv[0]);
 
-  tracker_ = new motionplanner::OmniSteerTracker();
-  tracker_->Init();
-  tracker_->SetMotionParam(20, 3, 1.0, 0, 0.6, 0.02, 0.3, 0.5, 0.5, 0.02, 0.03);
-  tracker_->SetAlgoParam();
 
-  agv = new CarOmni4(start);
 
   std::vector<double> traj_s;
   traj_s.push_back(0);
@@ -152,47 +147,37 @@ int main(int argc, char **argv) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+
+    
     if (ImGui::Begin("My window")) {
       ImGui::SetWindowFontScale(2.0f);
       if (ImGui::Button("Start")) {
         // 按钮被按下时，打印消息
         ButtonClick();
       }
-      // 绘制路径
-      ImGui::Text(agv->getState().c_str());
-      if (state == motionplanner::Tracker::State::kTracking) {
-        t2 = std::chrono::high_resolution_clock::now();
-        // 虚拟大车
-        motionplanner::MoveCmd now_cmd;
-        Pose robot = agv->getPose();
-        state = tracker_->Track(traj, 1.0, traj_s, next_i, traj.size(), robot,
-                                last_cmd, now_cmd, &next_i, false);
-        Pose cmd;
-        cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
 
-        if(is_begin && is_reach) { // 第一次
-          agv->SetSpeed(cmd, false); // 如果为true，会直到舵轮角度到位才返回
-          last_cmd = now_cmd;
-          is_reach = false;
-          LOG(INFO) << 1;
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }else if(!is_begin) {  // 非第一次
-          agv->SetSpeed(cmd, false); // 如果为true，会直到舵轮角度到位才返回
-          last_cmd = now_cmd;
-          LOG(INFO) << 3;
+
+        int i = 0;
+        for(; i < 4; i++) {
         }
-        if(is_begin) {
-          is_reach = agv->isAngleReach();
-          if(is_reach) is_begin = false;
-          LOG(INFO) << 2;
+            static ImVec2 pos(100+50*i, 100+50*i);
+            ImGui::SetCursorPos(pos);
+            std::string name = "4";
+            ImGui::Button(name.c_str());
+            if (ImGui::IsItemActive()) {
+                pos.x = ImGui::GetIO().MousePos.x;
+                pos.y = ImGui::GetIO().MousePos.y;
+            }
+        // ImGui::GetWindowDrawList()->AddCircleFilled(center, 30, IM_COL32(255, 0, 0, 255));
+
+
+        if (ImGui::IsMouseDoubleClicked(0)) {
+             pos.x = ImGui::GetIO().MousePos.x;
+                pos.y = ImGui::GetIO().MousePos.y;
         }
-      } else {
-        agv->SetSpeed(Pose(0, 0, 0), false);
-        last_cmd = motionplanner::MoveCmd(0, 0, 0);
-      }
-      std::chrono::duration<double, std::milli> time_span = t2 - t1;
-      ImGui::Text("time: %lf, length: %lf", time_span.count() / 1000.0,
-                  traj_s[next_i]);
+      
+
+
 
       // ImVec2 p1, p2;
       // p1.x = window_pos.x + (robot.x - window_ox) * ratio;
@@ -204,15 +189,8 @@ int main(int argc, char **argv) {
       //        (robot.y + 1 * sin(robot.theta) - window_oy) * ratio;
       // draw_list->AddLine(p1, p2, IM_COL32(255, 255, 0, 255), 2.0f);
 
-      // 画车
-      DrawCar(ImGui::GetWindowDrawList(), agv->getPose(), 1, 0.6);
-      std::vector<Pose> steerPose;
-      agv->getSteerPose(steerPose);
-      for (int i = 0; i < steerPose.size(); ++i) {
-        DrawCar(ImGui::GetWindowDrawList(), steerPose[i], 0.2, 0.1,
-                IM_COL32(0, 255, 0, 255), false);
-      }
-      DrawTraj(ImGui::GetWindowDrawList(), traj);
+
+    //   DrawTraj(ImGui::GetWindowDrawList(), traj);
 
       // 绘制坐标系(grid)
       // DrawCoordinateSystem();
@@ -229,7 +207,7 @@ int main(int argc, char **argv) {
 
     glfwSwapBuffers(window);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   return 0;

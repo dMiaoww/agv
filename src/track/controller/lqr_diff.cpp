@@ -1,21 +1,10 @@
 #include "lqr_diff.h"
 
-
 namespace motionplanner {
 
 LqrDiff::LqrDiff() {}
 
 LqrDiff::~LqrDiff() {}
-
-double shortest_angular_distance(double from, double to) {
-  double t = to - from;
-  if (t > M_PI) {
-    t -= 2 * M_PI;
-  } else if (t < -M_PI) {
-    t += 2 * M_PI;
-  }
-  return t;
-}
 
 std::pair<double, double> LqrDiff::UpdateControl(const ControlStatus &status, const ControlParam &param) {
   Eigen::MatrixXd Q(3, 3);
