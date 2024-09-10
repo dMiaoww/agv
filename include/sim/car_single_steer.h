@@ -2,6 +2,8 @@
 #include "common_data.h"
 #include "steer.h"
 #include "steer_origin.h"
+#include "steer_ddsu.h"
+#include "steer_ddsu_lag.h"
 #include "transform.h"
 #include <algorithm>
 #include <chrono>
@@ -25,7 +27,8 @@ public:
     m_set_vel = Pose(0, 0, 0);
     m_L = L;
     m_D = 0;
-    m_s_front = std::make_shared<SteerOrigin>("1");
+    // m_s_front = std::make_shared<SteerOrigin>("1");
+    m_s_front = std::make_shared<SteerDDSULag>("1");
 
     run_ = std::thread(std::bind(&CarSingleSteer::updateCAR, this));
   }
@@ -48,6 +51,8 @@ public:
   }
 
   Pose getPose() { return m_pos; }
+  double getSteerAngle(){return m_s_front->real_angle;}
+  double getSteerSpeed(){return m_s_front->real_vd;}
 
   std::string getState() {
     std::stringstream ss;
@@ -91,13 +96,14 @@ private:
       // 计算底盘速度
       // m_real_vel = forward_transform(m_s_front);
 
-      double dt = 0.03;
+      double dt = 0.001;
       std::random_device rd;  // 随机数生成器
       std::mt19937 gen(rd()); // 使用 Mersenne Twister 算法生成随机数
       std::uniform_real_distribution<> distrib(
           0.0, 1.0); // 定义均匀分布的取值范围，包括0.0，不包括1.0
       // 生成一个0到1（不包含1）的随机浮点数
-      double randomNumber = 0.04 * distrib(gen) - 0.02;
+      double randomNumber = 0.002 * distrib(gen) - 0.001;
+      randomNumber = 0;
 
       // m_pos.x += m_real_vel.x * cos(m_pos.theta) * dt -
       //            m_real_vel.y * sin(m_pos.theta) * dt;
@@ -106,8 +112,8 @@ private:
       // m_pos.theta += m_real_vel.theta * dt;
 
 
-      m_pos.x += m_s_front->real_vd * cos(m_pos.theta) * dt ;
-      m_pos.y += m_s_front->real_vd * sin(m_pos.theta) * dt ;
+      m_pos.x += m_s_front->real_vd * cos(m_pos.theta) * dt + randomNumber;
+      m_pos.y += m_s_front->real_vd * sin(m_pos.theta) * dt + randomNumber;
       m_pos.theta += m_s_front->real_vd / m_L * tan(m_s_front->real_angle) * dt ;
       
       // LOG(INFO) << m_real_vel;

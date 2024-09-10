@@ -38,6 +38,7 @@ double LqrSteer::UpdateControl2(const ControlStatus &status, const ControlParam 
                       double &pe, double &pth_e) {
 
   double angle_r = atan2(param.L * status.k , 1);
+  if(std::isnan(angle_r)) angle_r = 0;
 
   Eigen::MatrixXd K = Motion2(status, param);
 
@@ -123,11 +124,12 @@ void LqrSteer::GetJacobi(const ControlStatus &status, const ControlParam &param,
 Eigen::MatrixXd LqrSteer::Motion2(const ControlStatus &status, const ControlParam &param) {
   Eigen::MatrixXd Q(4, 4);
   Eigen::MatrixXd R(1, 1);
-  Q << 1, 0, 0, 0,
-       0, 1, 0, 0,
-       0, 0, 1, 0,
-       0, 0 ,0, 1;
-  R << 1 + status.target_vx*2;  
+  Q << 0.1, 0, 0, 0,
+       0, 0.1, 0, 0,
+       0, 0, 0.1, 0,
+       0, 0 ,0, 0.1;
+  // R << 1 + status.target_vx*2;
+  R << 1;  
 
   Eigen::MatrixXd A, B;
   A.resize(4, 4);

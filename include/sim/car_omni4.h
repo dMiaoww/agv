@@ -106,8 +106,9 @@ private:
     // LOG(INFO) << cmd;
     for (int i = 0; i < steers.size(); i++) {
       double a = atan2(cmd.y + cmd.theta * vector_L[i],
-                       cmd.x + cmd.theta * vector_D[i]);
-      double v = (cmd.x + cmd.theta * vector_D[i]) / cos(a);
+                       cmd.x - cmd.theta * vector_D[i]);
+      double v = std::hypot(cmd.y + cmd.theta * vector_L[i],
+                       cmd.x - cmd.theta * vector_D[i]);
       if (a > 140.0/180.0*M_PI) {
         a -= M_PI;
         v *= -1;
@@ -137,7 +138,11 @@ private:
       double &a = steers[i]->real_angle;
       vel.x += v * cos(a) / steers.size();
       vel.y += v * sin(a) / steers.size();
-      vel.theta += v * cos(a) / vector_D[i] / steers.size();
+    }
+    for(int i = 0; i < steers.size(); i++) {
+      double &v = steers[i]->real_vd;
+      double &a = steers[i]->real_angle;
+      vel.theta += (vel.x-v * cos(a)) / vector_D[i] / steers.size();
     }
     return vel;
   }

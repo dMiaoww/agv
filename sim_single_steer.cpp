@@ -20,21 +20,27 @@
 // using namespace motionplanner;
 
 int window_ox = -5;
-int window_oy = -10;
+int window_oy = 0;
 const int ratio = 50;
-bool is_backward = false;
 auto state = motionplanner::Tracker::State::kSuccessful;
 
-Pose start(0,-4.9, 0);
-// int index = 0;
-Pose p1 = Pose(0, -5, 0);
-Pose p2 = Pose(2, -5, 0);
-Pose p3 = Pose(4, -7, 0);
-Pose p4 = Pose(5, -7, 0);
-// Pose p1 = Pose(0, -5, 0);
-// Pose p2 = Pose(2, -5, 0);
-// Pose p3 = Pose(3, -5, 0);
-// Pose p4 = Pose(4, -5, 0);
+
+// bool is_backward = true;
+// Pose start(0.05,10, 1.5);
+// Pose p1 = Pose(0, 10, 1.5704);
+// Pose p2 = Pose(0, 5, 1.5704);
+// Pose p3 = Pose(0, 3, 1.5704);
+// Pose p4 = Pose(0, 0, 1.5704);
+
+bool is_backward = false;
+Pose start(0.05,0, 1.5);
+Pose p1 = Pose(0, 0, 1.5704);
+Pose p2 = Pose(0, 3, 1.5704);
+Pose p3 = Pose(0, 5, 1.5704);
+Pose p4 = Pose(0, 10, 1.5704);
+
+
+
 auto traj = BezierCurve::get(1000, p1, p2, p3, p4);
 
 // auto traj = BezierCurve::getStraightLine(0.05, Pose(-10.3076,-6.0912,-2.82), Pose(-7.31905,-5.09556,-2.82));
@@ -116,7 +122,8 @@ int main(int argc, char **argv) {
 
   tracker_ = new motionplanner::Pf3Tracker();
   tracker_->Init();
-  tracker_->SetMotionParam(20, 3, 1.0, 0, 0.6, 0.02, 0.3, 0.5, 0.5, 0.02, 0.03);
+  int hz = 20;
+  tracker_->SetMotionParam(hz, 3, 1.0, 0, 0.6, 0.02, 0.6, 0.5, 0.5, 0.02, 0.03);
   tracker_->SetAlgoParam();
 
   agv = new CarSingleSteer(start);
@@ -160,6 +167,8 @@ int main(int argc, char **argv) {
   bool is_begin = true;
   std::chrono::high_resolution_clock::time_point begin_t1 =
       std::chrono::high_resolution_clock::now();
+  static std::ofstream file;
+        file.open("DDSU_PID");
   while (!glfwWindowShouldClose(window)) {
     // 清除前一帧的输入数据
     glfwPollEvents();
@@ -187,7 +196,14 @@ int main(int argc, char **argv) {
         Pose cmd;
         cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
 
+        // 在这里加一个PID
+        static PositionPID pid(0.85, 0.001, 0.00001, 1.0/hz);
+        double a = agv->getSteerAngle();
+        cmd.theta = pid.getOutput(now_cmd.w, a, 0.5);
+        
         agv->SetSpeed(cmd, is_begin); // 如果为true，会直到舵轮角度到位才返回
+        file << cmd.theta << " " << cmd.x << " " << agv->getSteerAngle() << " "
+           << agv->getSteerSpeed() << "\n";
         is_begin = false;
         last_cmd = now_cmd;
       } else {
@@ -233,7 +249,7 @@ int main(int argc, char **argv) {
 
     glfwSwapBuffers(window);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000/hz));
   }
 
   return 0;

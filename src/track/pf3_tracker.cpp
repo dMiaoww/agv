@@ -138,7 +138,7 @@ namespace motionplanner
                              double theta_accuracy) {
   dt_ = 1.0 / frequency;
   p_ = p;
-  max_v_ = 0.5;
+  max_v_ = 1.5;
   min_v_ = 0;
   max_w_ = max_w;
   min_w_ = min_w;
