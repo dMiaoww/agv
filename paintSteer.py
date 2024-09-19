@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 # 四个文件名
 # filenames = ["steer0", "steer1", "steer2", "steer3"]
 # filenames = ["DDSU0", "DDSU1", "DDSU2", "DDSU3"]
-filenames = ["build/DDSU1", "build/DDSU_PID"]
+filenames = ["DDSU1", "DDSU_PID"]
 
 
 plt.figure(figsize=[15, 20])  # 设置画布尺寸

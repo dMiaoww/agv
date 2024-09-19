@@ -11,10 +11,10 @@ namespace motionplanner {
 double LqrSteer::UpdateControl(const ControlStatus &status, const ControlParam &param) {
   Eigen::MatrixXd Q(3, 3);
   Eigen::MatrixXd R(1, 1);
-  Q << param.w_x, 0, 0, 
-      0, param.w_y, 0, 
-      0, 0, param.w_yaw;
-  R << param.w_vyaw;
+  Q << 1, 0, 0, 
+      0, 1, 0, 
+      0, 0, 0.2;
+  R << fabs(status.target_vx);
 
   double angle_r = atan2(param.L * status.k , 1);
 

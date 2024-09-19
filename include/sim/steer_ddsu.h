@@ -89,7 +89,7 @@ private:
   double m_max_a = 1; // 加速度 1m / s
   double m_vl = 0;    // 左轮速度
   double m_vr = 0;    // 右轮速度
-  double update_time = 0.001;  // 积分时间从0.01-0.001就会出现震荡
+  double update_time = 0.005;  // 积分时间从0.01-0.001就会出现震荡
   double b = 0.125; // DDSU 中轮子到中点的距离
 
   std::shared_ptr<PositionPID> ptr_pid;

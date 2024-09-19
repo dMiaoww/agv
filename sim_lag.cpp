@@ -16,8 +16,8 @@ int main(int argc,char **argv) {
         double a = 0.5*sin(M_PI * i / 30.0);  // 输入
 
         static PositionPID pid(pid_kp, pid_ki, pid_kd, 0.1);
-        double ab = pid.getOutput(a, steer.real_angle, 0.5);  // 控制器输出
-        steer.SetSpeed(ab, 0.1);
+        // double ab = pid.getOutput(a, steer.real_angle, 0.5);  // 控制器输出
+        steer.SetSpeed(a, 0.1);
 
 
         file << a << " " << 0.1 << " " << steer.real_angle << " "  // 实际输出

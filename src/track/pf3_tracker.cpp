@@ -86,8 +86,8 @@ namespace motionplanner
     double alpha = alpha_;
 
     LqrSteer lqr_steer;
-    // cmd.w = lqr_steer.UpdateControl(status, lqr_param_); // 注意这里算出来的是角度
-    cmd.w = lqr_steer.UpdateControl2(status, lqr_param_, pe, pth_e);
+    cmd.w = lqr_steer.UpdateControl(status, lqr_param_); // 注意这里算出来的是角度
+    // cmd.w = lqr_steer.UpdateControl2(status, lqr_param_, pe, pth_e);
     // LOG(INFO) << "[lqr] vx:" << cmd.vx << " vy:" << cmd.vy << " w:" << cmd.w;
     // if(cmd.w > 0 ) cmd.w *= 0.95;
     // else if(cmd.w < 0) cmd.w *= 1.025;
@@ -280,7 +280,7 @@ namespace motionplanner
         // double v_curv = 0.15 * pow(cmax, -0.7);
         int next_index;
         LOG(INFO) << "v_cuve: " << v_curv;
-        if(true || fabs(v_ref) > 0.3 || dis_to_end < 0.5) {
+        if(true ) {
           // if(true) {
           next_index = min_id;
           if (next_index < *n_idx)

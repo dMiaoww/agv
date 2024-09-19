@@ -28,6 +28,7 @@ set(IMGUI_SOURCES
 
 # 添加include路径
 include_directories(
+    ${CMAKE_SOURCE_DIR}/depend
     ${CMAKE_SOURCE_DIR}/depend/imgui
     ${CMAKE_SOURCE_DIR}/depend/imgui/backends
     # ... # 其他的包含文件路径

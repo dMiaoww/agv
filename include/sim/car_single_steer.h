@@ -28,7 +28,7 @@ public:
     m_L = L;
     m_D = 0;
     // m_s_front = std::make_shared<SteerOrigin>("1");
-    m_s_front = std::make_shared<SteerDDSULag>("1");
+    m_s_front = std::make_shared<SteerDDSU>("1");
 
     run_ = std::thread(std::bind(&CarSingleSteer::updateCAR, this));
   }
@@ -56,7 +56,7 @@ public:
 
   std::string getState() {
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(2) << m_pos << "\tvel:" << m_real_vel
+    ss << std::fixed << std::setprecision(4) << m_pos << "\tvel:" << m_real_vel
        << "\na1: " << m_s_front->real_angle << "\nv1: " << m_s_front->real_vd;
     return ss.str();
   }
@@ -94,7 +94,7 @@ private:
       // inverse_transform(m_set_vel, m_s_front);
       m_s_front->SetSpeed(m_set_vel.theta, m_set_vel.x);
       // 计算底盘速度
-      // m_real_vel = forward_transform(m_s_front);
+      m_real_vel = forward_transform(m_s_front);
 
       double dt = 0.001;
       std::random_device rd;  // 随机数生成器
@@ -105,16 +105,14 @@ private:
       double randomNumber = 0.002 * distrib(gen) - 0.001;
       randomNumber = 0;
 
-      // m_pos.x += m_real_vel.x * cos(m_pos.theta) * dt -
-      //            m_real_vel.y * sin(m_pos.theta) * dt;
-      // m_pos.y += m_real_vel.x * sin(m_pos.theta) * dt +
-      //            m_real_vel.y * cos(m_pos.theta) * dt;
-      // m_pos.theta += m_real_vel.theta * dt;
+      m_pos.x += m_real_vel.x * cos(m_pos.theta) * dt - m_real_vel.y * sin(m_pos.theta) * dt;
+      m_pos.y += m_real_vel.x * sin(m_pos.theta) * dt + m_real_vel.y * cos(m_pos.theta) * dt;
+      m_pos.theta += m_real_vel.theta * dt;
 
 
-      m_pos.x += m_s_front->real_vd * cos(m_pos.theta) * dt + randomNumber;
-      m_pos.y += m_s_front->real_vd * sin(m_pos.theta) * dt + randomNumber;
-      m_pos.theta += m_s_front->real_vd / m_L * tan(m_s_front->real_angle) * dt ;
+      // m_pos.x += m_s_front->real_vd * cos(m_pos.theta) * dt + randomNumber;
+      // m_pos.y += m_s_front->real_vd * sin(m_pos.theta) * dt + randomNumber;
+      // m_pos.theta += m_s_front->real_vd / m_L * tan(m_s_front->real_angle) * dt ;
       
       // LOG(INFO) << m_real_vel;
 

@@ -197,9 +197,9 @@ int main(int argc, char **argv) {
         cmd.x = now_cmd.vx, cmd.y = now_cmd.vy, cmd.theta = now_cmd.w;
 
         // 在这里加一个PID
-        static PositionPID pid(0.85, 0.001, 0.00001, 1.0/hz);
+        static PositionPID pid(0.5, 0, 0, 1.0/hz);
         double a = agv->getSteerAngle();
-        cmd.theta = pid.getOutput(now_cmd.w, a, 0.5);
+        cmd.theta += pid.getOutput(now_cmd.w, a, 0.3);
         
         agv->SetSpeed(cmd, is_begin); // 如果为true，会直到舵轮角度到位才返回
         file << cmd.theta << " " << cmd.x << " " << agv->getSteerAngle() << " "
