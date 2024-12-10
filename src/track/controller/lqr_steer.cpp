@@ -134,7 +134,7 @@ Eigen::MatrixXd LqrSteer::Motion2(const ControlStatus &status, const ControlPara
   Eigen::MatrixXd A, B;
   A.resize(4, 4);
   A << 1, param.t, 0, 0, 
-      0, 0 ,status.target_vx ,0, 
+      0, 0 ,status.target_vx*param.t ,0, 
       0 ,0 ,1 ,param.t,
       0 ,0 ,0 ,0;
   // std::cout << "A:\n" << A << "\n";

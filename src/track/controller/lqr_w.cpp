@@ -17,8 +17,8 @@ double shortest_angular_distance(double from, double to) {
 double LqrW::UpdateControl(const ControlStatus &status, const double dt) {
   Eigen::MatrixXd Q(3, 3);
   Eigen::MatrixXd R(1, 1);
-  Q << 1, 0, 0, 
-      0, 1, 0, 
+  Q << 20, 0, 0, 
+      0, 20, 0, 
       0, 0, 0.1;
   R << 0.1;
 
@@ -39,6 +39,7 @@ double LqrW::UpdateControl(const ControlStatus &status, const double dt) {
   K = Solve(A, B, Q, R);
 
   double res = status.target_vyaw - (K * xwan)(0, 0);
+  std::cout << " k:" << K(0,0) << " " << K(0,1) << " " << K(0,2) << std::endl;
  
   // LOG(INFO) << "res " << res.first << "  " << res.second;
   return res;

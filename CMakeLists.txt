@@ -56,6 +56,3 @@ target_link_libraries(sim_ss glog pthread src imgui OpenGL::GL glfw dl track)
 
 add_executable(sim_lag sim_lag.cpp)
 target_link_libraries(sim_lag glog pthread src imgui OpenGL::GL glfw dl track)
-
-add_executable(paint test_paint.cpp)
-target_link_libraries(paint glog pthread src imgui OpenGL::GL glfw dl track)
